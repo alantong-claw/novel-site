@@ -3,6 +3,7 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'url';
@@ -13,34 +14,43 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const upload = multer({ dest: path.join(__dirname, 'uploads') });
 const publicDir = path.join(__dirname, 'public');
-const generatedDir = path.join(publicDir, 'generated');
-
-fs.mkdirSync(generatedDir, { recursive: true });
+const activeSessions = new Map();
 
 app.use(express.json());
 app.use(express.static(publicDir));
 
-app.post('/api/text', async (req, res) => {
+app.post('/api/login', (req, res) => {
+  const providedPassword = String(req.body?.password || '');
+  if (!isPasswordValid(providedPassword)) {
+    return res.status(401).json({ ok: false, error: 'Invalid password' });
+  }
+
+  const token = crypto.randomBytes(24).toString('hex');
+  activeSessions.set(token, Date.now());
+  return res.json({ ok: true, token });
+});
+
+app.post('/api/text', requireAuth, async (req, res) => {
   try {
     const transcript = (req.body?.text || '').trim();
     const replyText = await askOpenClaw(transcript || '（沒有收到文字）');
-    const audioUrl = await synthesizeSpeech(replyText);
-    res.json({ transcript, replyText, audioUrl, ttsMode: getTtsMode() });
+    const audioUrl = await fakeSynthesize(replyText);
+    res.json({ transcript, replyText, audioUrl });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Text pipeline failed.', details: error.message });
   }
 });
 
-app.post('/api/talk', upload.single('audio'), async (req, res) => {
+app.post('/api/talk', requireAuth, upload.single('audio'), async (req, res) => {
   try {
     const transcript = await transcribeAudio(req.file?.path, req.file?.originalname);
     const replyText = await askOpenClaw(transcript);
-    const audioUrl = await synthesizeSpeech(replyText);
+    const audioUrl = await fakeSynthesize(replyText);
 
     if (req.file?.path) fs.unlink(req.file.path, () => {});
 
-    res.json({ transcript, replyText, audioUrl, ttsMode: getTtsMode() });
+    res.json({ transcript, replyText, audioUrl });
   } catch (error) {
     console.error(error);
     if (req.file?.path) fs.unlink(req.file.path, () => {});
@@ -53,11 +63,36 @@ app.get('/api/health', (_req, res) => {
     ok: true,
     service: 'voice-proto',
     stt: getSttMode(),
-    tts: getTtsMode(),
+    tts: 'browser-speech-synthesis',
     assistant: 'openclaw-agent',
     sessionId: getVoiceSessionId(),
+    auth: isPasswordConfigured() ? 'password' : 'off',
   });
 });
+
+function isPasswordConfigured() {
+  return Boolean(process.env.VOICE_PROTO_PASSWORD);
+}
+
+function isPasswordValid(providedPassword) {
+  const expected = process.env.VOICE_PROTO_PASSWORD || '';
+  if (!expected) return true;
+  const a = Buffer.from(String(providedPassword));
+  const b = Buffer.from(String(expected));
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+function requireAuth(req, res, next) {
+  if (!isPasswordConfigured()) return next();
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!token || !activeSessions.has(token)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  activeSessions.set(token, Date.now());
+  next();
+}
 
 function getVoiceSessionId() {
   return process.env.VOICE_PROTO_SESSION_ID || 'voice-proto';
@@ -65,10 +100,6 @@ function getVoiceSessionId() {
 
 function getSttMode() {
   return process.env.OPENAI_API_KEY ? 'openai-audio-transcription' : 'browser-speech-recognition';
-}
-
-function getTtsMode() {
-  return process.env.OPENAI_API_KEY ? 'openai-audio-speech' : 'browser-speech-synthesis';
 }
 
 async function askOpenClaw(message) {
@@ -164,62 +195,14 @@ function sanitizeFilename(filename) {
   return filename.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-async function synthesizeSpeech(replyText) {
-  const text = String(replyText || '').trim();
-  if (!text) return null;
-
-  if (!process.env.OPENAI_API_KEY) {
-    return null;
-  }
-
-  const model = process.env.OPENAI_TTS_MODEL || 'gpt-4o-mini-tts';
-  const voice = process.env.OPENAI_TTS_VOICE || 'alloy';
-  const format = process.env.OPENAI_TTS_FORMAT || 'mp3';
-  const response = await fetch('https://api.openai.com/v1/audio/speech', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      voice,
-      input: text,
-      format,
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`TTS request failed: ${response.status} ${errText}`);
-  }
-
-  const ext = format === 'wav' ? 'wav' : 'mp3';
-  const fileName = `reply-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const filePath = path.join(generatedDir, fileName);
-  const arrayBuffer = await response.arrayBuffer();
-  fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
-  cleanupGeneratedAudio().catch((error) => console.warn('audio cleanup failed', error));
-  return `/generated/${fileName}`;
+async function fakeSynthesize(_replyText) {
+  return null;
 }
 
-async function cleanupGeneratedAudio() {
-  const keepMs = Number(process.env.VOICE_PROTO_AUDIO_TTL_MS || 1000 * 60 * 30);
-  const entries = await fs.promises.readdir(generatedDir, { withFileTypes: true });
-  const now = Date.now();
-  await Promise.all(entries.filter((entry) => entry.isFile()).map(async (entry) => {
-    const filePath = path.join(generatedDir, entry.name);
-    const stat = await fs.promises.stat(filePath);
-    if (now - stat.mtimeMs > keepMs) {
-      await fs.promises.unlink(filePath).catch(() => {});
-    }
-  }));
-}
-
-const port = process.env.PORT || 3100;
+const port = process.env.PORT || 3110;
 app.listen(port, () => {
   console.log(`Voice prototype listening on http://localhost:${port}`);
   console.log(`STT mode: ${getSttMode()}`);
-  console.log(`TTS mode: ${getTtsMode()}`);
   console.log(`Assistant mode: openclaw-agent (${getVoiceSessionId()})`);
+  console.log(`Auth mode: ${isPasswordConfigured() ? 'password' : 'off'}`);
 });

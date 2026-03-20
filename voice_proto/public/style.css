@@ -28,6 +28,9 @@ body {
   margin-top: 16px;
   box-shadow: 0 12px 30px rgba(0,0,0,0.25);
 }
+.hidden {
+  display: none;
+}
 .status { color: var(--muted); font-size: 14px; }
 .recorder {
   display: flex;
@@ -79,6 +82,7 @@ audio {
   display: grid;
   gap: 8px;
 }
+input,
 select,
 .secondary {
   width: 100%;

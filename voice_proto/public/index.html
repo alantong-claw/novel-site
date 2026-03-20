@@ -13,36 +13,49 @@
       <div class="status" id="status">Ready</div>
     </div>
 
-    <div class="card recorder">
-      <button id="recordBtn">Tap to Talk</button>
-      <div class="small">Uses browser built-in speech recognition when supported. Best chance: Chrome / Android Chrome.</div>
-    </div>
-
-    <div class="card controls">
+    <div class="card" id="loginCard">
+      <h2 class="panel-title">Unlock</h2>
       <div class="control-row">
-        <label>
-          <input type="checkbox" id="speakToggle" checked />
-          Auto speak reply
-        </label>
+        <label for="passwordInput">Password</label>
+        <input id="passwordInput" type="password" placeholder="Enter password" />
       </div>
       <div class="control-row">
-        <label for="voiceSelect">Voice</label>
-        <select id="voiceSelect"></select>
-      </div>
-      <div class="control-row">
-        <button id="replayBtn" class="secondary" disabled>Replay reply</button>
+        <button id="loginBtn" class="secondary">Unlock voice access</button>
       </div>
     </div>
 
-    <div class="card">
-      <h2 class="panel-title">You said</h2>
-      <div class="bubble" id="transcript">...</div>
-    </div>
+    <div id="appBody" class="hidden">
+      <div class="card recorder">
+        <button id="recordBtn">Tap to Talk</button>
+        <div class="small">Uses browser built-in speech recognition when supported. Best chance: Chrome / Android Chrome.</div>
+      </div>
 
-    <div class="card">
-      <h2 class="panel-title">ClawChan replied</h2>
-      <div class="bubble" id="replyText">...</div>
-      <audio id="replyAudio" controls hidden></audio>
+      <div class="card controls">
+        <div class="control-row">
+          <label>
+            <input type="checkbox" id="speakToggle" checked />
+            Auto speak reply
+          </label>
+        </div>
+        <div class="control-row">
+          <label for="voiceSelect">Voice</label>
+          <select id="voiceSelect"></select>
+        </div>
+        <div class="control-row">
+          <button id="replayBtn" class="secondary" disabled>Replay reply</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="panel-title">You said</h2>
+        <div class="bubble" id="transcript">...</div>
+      </div>
+
+      <div class="card">
+        <h2 class="panel-title">ClawChan replied</h2>
+        <div class="bubble" id="replyText">...</div>
+        <audio id="replyAudio" controls></audio>
+      </div>
     </div>
   </div>
 

@@ -6,15 +6,51 @@ const replyAudio = document.getElementById('replyAudio');
 const voiceSelect = document.getElementById('voiceSelect');
 const speakToggle = document.getElementById('speakToggle');
 const replayBtn = document.getElementById('replayBtn');
+const loginBtn = document.getElementById('loginBtn');
+const passwordInput = document.getElementById('passwordInput');
+const loginCard = document.getElementById('loginCard');
+const appBody = document.getElementById('appBody');
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 let isRecording = false;
 let lastReplyText = '';
 let availableVoices = [];
+let authToken = localStorage.getItem('voiceProtoToken') || '';
 
 function setReadyState(message = 'Ready') {
   statusEl.textContent = message;
+}
+
+function setUnlocked(unlocked) {
+  loginCard.classList.toggle('hidden', unlocked);
+  appBody.classList.toggle('hidden', !unlocked);
+  setReadyState(unlocked ? 'Unlocked' : 'Locked');
+}
+
+async function login() {
+  const password = passwordInput.value;
+  setReadyState('Unlocking...');
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    setReadyState('Wrong password');
+    return;
+  }
+
+  authToken = data.token;
+  localStorage.setItem('voiceProtoToken', authToken);
+  passwordInput.value = '';
+  setUnlocked(true);
+}
+
+function authHeaders() {
+  return authToken ? { Authorization: `Bearer ${authToken}` } : {};
 }
 
 function getSpeechSynthesis() {
@@ -83,9 +119,17 @@ async function sendText(text) {
   setReadyState('Sending text...');
   const res = await fetch('/api/text', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ text }),
   });
+
+  if (res.status === 401) {
+    localStorage.removeItem('voiceProtoToken');
+    authToken = '';
+    setUnlocked(false);
+    setReadyState('Session expired, please unlock again');
+    return;
+  }
 
   const data = await res.json();
   transcriptEl.textContent = data.transcript || '(no transcript)';
@@ -94,23 +138,15 @@ async function sendText(text) {
   replayBtn.disabled = !lastReplyText;
 
   if (data.audioUrl) {
-    replyAudio.hidden = false;
     replyAudio.src = data.audioUrl;
     try { await replyAudio.play(); } catch {}
   } else {
-    replyAudio.hidden = true;
     replyAudio.removeAttribute('src');
     replyAudio.load();
   }
 
   if (speakToggle?.checked && lastReplyText) {
-    if (data.ttsMode === 'browser-speech-synthesis' || !data.audioUrl) {
-      speakText(lastReplyText);
-    } else {
-      setReadyState('Playing reply...');
-      replyAudio.onended = () => setReadyState('Ready');
-      replyAudio.onerror = () => setReadyState('Audio playback failed');
-    }
+    speakText(lastReplyText);
   } else {
     setReadyState('Ready');
   }
@@ -164,7 +200,12 @@ function ensureRecognition() {
   return recognition;
 }
 
-btn.addEventListener('click', async () => {
+loginBtn?.addEventListener('click', login);
+passwordInput?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') login();
+});
+
+btn?.addEventListener('click', async () => {
   const sr = ensureRecognition();
   if (!sr) {
     setReadyState('This browser does not support built-in speech recognition');
@@ -199,3 +240,5 @@ if (supportsTts()) {
   if (speakToggle) speakToggle.disabled = true;
   if (replayBtn) replayBtn.disabled = true;
 }
+
+setUnlocked(Boolean(authToken));

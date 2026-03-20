@@ -9,6 +9,7 @@
 
 * **Novel Website**: Simple HTML/CSS project in `/home/alantong/ai-work/novel_site`. Minimal style. Maintained via AI updates. Always update `index.html` when adding new chapters.
 * **Voice Prototype Milestone (2026-03-20)**: End-to-end mobile voice conversation was achieved in `/home/alantong/ai-work/voice_proto` using browser speech recognition, real OpenClaw replies, browser TTS, startup scripts, and Telegram ngrok URL delivery. User considers this a major milestone.
+* **Voice Name Preference**: In spoken interactions, the user will call the assistant 「小爪」 for easier speech recognition.
 
 ## Security Policy - Access Control
 

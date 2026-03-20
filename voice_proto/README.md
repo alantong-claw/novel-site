@@ -12,7 +12,8 @@ A minimal push-to-talk mobile web prototype for talking to ClawChan.
   - transcript
   - assistant text reply
   - optional audio reply URL
-- If `OPENAI_API_KEY` is configured, backend can synthesize reply audio and return `audioUrl`
+  - current TTS mode (`browser-speech-synthesis` or `openai-audio-speech`)
+- No API key path is fully supported: the browser speaks replies locally via native speech synthesis
 
 ## Current state
 
@@ -27,9 +28,12 @@ This prototype now supports a real assistant loop:
 
 ## Recommended path right now
 
-Use **browser speech recognition** first.
+Use the **no-API-key browser path** first:
+- browser speech recognition for input
+- browser native speech synthesis for output
+
 Best chance of working: **Chrome on Android**.
-If browser TTS is available, replies can also be spoken aloud locally on the phone.
+This is the preferred default when you do not want to depend on cloud TTS.
 
 ## Run
 
@@ -72,18 +76,19 @@ Returns:
 {
   "transcript": "你好",
   "replyText": "...",
-  "audioUrl": "/generated/reply-123456.mp3"
+  "audioUrl": null,
+  "ttsMode": "browser-speech-synthesis"
 }
 ```
 
-If TTS is not configured or synthesis is unavailable, `audioUrl` may still be `null`.
+If cloud TTS is configured, `audioUrl` may contain a generated audio file and `ttsMode` will be `openai-audio-speech`.
 
 ### `POST /api/talk`
 Multipart form upload with field `audio`.
 This is only useful if OpenAI transcription is configured.
 
 ### `GET /api/health`
-Shows service health, STT mode, and current OpenClaw session id.
+Shows service health, STT mode, TTS mode, and current OpenClaw session id.
 
 ## Notes
 

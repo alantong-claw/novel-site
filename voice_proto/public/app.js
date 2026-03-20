@@ -94,15 +94,23 @@ async function sendText(text) {
   replayBtn.disabled = !lastReplyText;
 
   if (data.audioUrl) {
+    replyAudio.hidden = false;
     replyAudio.src = data.audioUrl;
     try { await replyAudio.play(); } catch {}
   } else {
+    replyAudio.hidden = true;
     replyAudio.removeAttribute('src');
     replyAudio.load();
   }
 
   if (speakToggle?.checked && lastReplyText) {
-    speakText(lastReplyText);
+    if (data.ttsMode === 'browser-speech-synthesis' || !data.audioUrl) {
+      speakText(lastReplyText);
+    } else {
+      setReadyState('Playing reply...');
+      replyAudio.onended = () => setReadyState('Ready');
+      replyAudio.onerror = () => setReadyState('Audio playback failed');
+    }
   } else {
     setReadyState('Ready');
   }

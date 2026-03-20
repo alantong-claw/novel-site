@@ -25,7 +25,7 @@ app.post('/api/text', async (req, res) => {
     const transcript = (req.body?.text || '').trim();
     const replyText = await askOpenClaw(transcript || '（沒有收到文字）');
     const audioUrl = await synthesizeSpeech(replyText);
-    res.json({ transcript, replyText, audioUrl });
+    res.json({ transcript, replyText, audioUrl, ttsMode: getTtsMode() });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Text pipeline failed.', details: error.message });
@@ -40,7 +40,7 @@ app.post('/api/talk', upload.single('audio'), async (req, res) => {
 
     if (req.file?.path) fs.unlink(req.file.path, () => {});
 
-    res.json({ transcript, replyText, audioUrl });
+    res.json({ transcript, replyText, audioUrl, ttsMode: getTtsMode() });
   } catch (error) {
     console.error(error);
     if (req.file?.path) fs.unlink(req.file.path, () => {});
@@ -53,6 +53,7 @@ app.get('/api/health', (_req, res) => {
     ok: true,
     service: 'voice-proto',
     stt: getSttMode(),
+    tts: getTtsMode(),
     assistant: 'openclaw-agent',
     sessionId: getVoiceSessionId(),
   });
@@ -64,6 +65,10 @@ function getVoiceSessionId() {
 
 function getSttMode() {
   return process.env.OPENAI_API_KEY ? 'openai-audio-transcription' : 'browser-speech-recognition';
+}
+
+function getTtsMode() {
+  return process.env.OPENAI_API_KEY ? 'openai-audio-speech' : 'browser-speech-synthesis';
 }
 
 async function askOpenClaw(message) {
@@ -215,5 +220,6 @@ const port = process.env.PORT || 3100;
 app.listen(port, () => {
   console.log(`Voice prototype listening on http://localhost:${port}`);
   console.log(`STT mode: ${getSttMode()}`);
+  console.log(`TTS mode: ${getTtsMode()}`);
   console.log(`Assistant mode: openclaw-agent (${getVoiceSessionId()})`);
 });

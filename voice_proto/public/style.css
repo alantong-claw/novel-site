@@ -1,0 +1,76 @@
+:root {
+  --bg: #0f172a;
+  --card: #111827;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --accent: #22c55e;
+  --accent-2: #38bdf8;
+  --danger: #ef4444;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: linear-gradient(180deg, #020617, #111827);
+  color: var(--text);
+}
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.card {
+  background: rgba(17, 24, 39, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 20px;
+  padding: 20px;
+  margin-top: 16px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+}
+.status { color: var(--muted); font-size: 14px; }
+.recorder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+#recordBtn {
+  width: 180px;
+  height: 180px;
+  border: none;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #38bdf8, #2563eb);
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.4);
+}
+#recordBtn.recording {
+  background: radial-gradient(circle at 30% 30%, #fb7185, #dc2626);
+  box-shadow: 0 12px 30px rgba(220, 38, 38, 0.45);
+}
+.small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.panel-title {
+  margin: 0 0 8px;
+  color: var(--accent-2);
+  font-size: 15px;
+  letter-spacing: .02em;
+}
+.bubble {
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 14px;
+  padding: 12px 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+audio {
+  width: 100%;
+  margin-top: 10px;
+}
+@media (max-width: 600px) {
+  #recordBtn { width: 150px; height: 150px; }
+}

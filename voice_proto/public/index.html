@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClawChan Voice Prototype</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>ClawChan Voice</h1>
+      <div class="status" id="status">Ready</div>
+    </div>
+
+    <div class="card recorder">
+      <button id="recordBtn">Hold / Tap to Talk</button>
+      <div class="small">Tap once to start, tap again to stop. On desktop/mobile browsers that support recording.</div>
+    </div>
+
+    <div class="card">
+      <h2 class="panel-title">You said</h2>
+      <div class="bubble" id="transcript">...</div>
+    </div>
+
+    <div class="card">
+      <h2 class="panel-title">ClawChan replied</h2>
+      <div class="bubble" id="replyText">...</div>
+      <audio id="replyAudio" controls></audio>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

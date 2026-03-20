@@ -3,11 +3,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PORT="${PORT:-3110}"
+TELEGRAM_TARGET="${VOICE_TELEGRAM_TARGET:-8707204748}"
 LOG_DIR="$ROOT_DIR/runtime"
 VOICE_LOG="$LOG_DIR/voice_proto.log"
 NGROK_LOG="$LOG_DIR/ngrok.log"
 VOICE_PID_FILE="$LOG_DIR/voice_proto.pid"
 NGROK_PID_FILE="$LOG_DIR/ngrok.pid"
+LAST_NGROK_URL_FILE="$LOG_DIR/last_ngrok_url.txt"
 
 mkdir -p "$LOG_DIR"
 
@@ -78,6 +80,33 @@ start_voice() {
   echo
 }
 
+get_ngrok_url() {
+  curl -fsS http://127.0.0.1:4040/api/tunnels 2>/dev/null | sed -n 's/.*"public_url":"\([^"]*\)".*/\1/p' | head -n 1 || true
+}
+
+send_ngrok_url_to_telegram() {
+  local url="$1"
+  [ -n "$url" ] || return 0
+
+  local previous=""
+  if [ -f "$LAST_NGROK_URL_FILE" ]; then
+    previous="$(cat "$LAST_NGROK_URL_FILE")"
+  fi
+
+  if [ "$previous" = "$url" ]; then
+    echo "ngrok URL unchanged; skipping Telegram send."
+    return 0
+  fi
+
+  local message="ClawChan voice URL: $url"
+  if openclaw message send --channel telegram --target "$TELEGRAM_TARGET" --message "$message" >/dev/null 2>&1; then
+    printf '%s\n' "$url" > "$LAST_NGROK_URL_FILE"
+    echo "Sent ngrok URL to Telegram target $TELEGRAM_TARGET"
+  else
+    echo "Failed to send ngrok URL to Telegram."
+  fi
+}
+
 start_ngrok() {
   local ngrok_bin
   if ! ngrok_bin="$(find_ngrok)"; then
@@ -87,6 +116,10 @@ start_ngrok() {
 
   if is_running "$NGROK_PID_FILE"; then
     echo "ngrok already running (pid $(cat "$NGROK_PID_FILE"))"
+    local existing_url
+    existing_url="$(get_ngrok_url)"
+    [ -n "$existing_url" ] && echo "ngrok URL: $existing_url"
+    send_ngrok_url_to_telegram "$existing_url"
     return 0
   fi
 
@@ -96,9 +129,10 @@ start_ngrok() {
   sleep 3
 
   local url
-  url="$(curl -fsS http://127.0.0.1:4040/api/tunnels 2>/dev/null | sed -n 's/.*"public_url":"\([^"]*\)".*/\1/p' | head -n 1 || true)"
+  url="$(get_ngrok_url)"
   if [ -n "$url" ]; then
     echo "ngrok URL: $url"
+    send_ngrok_url_to_telegram "$url"
   else
     echo "ngrok started, but tunnel URL was not detected yet. Check: $NGROK_LOG"
   fi

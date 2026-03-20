@@ -25,6 +25,7 @@ This will:
 - try to start `ngrok` if found
 - print the local health URL
 - print the ngrok public URL when available
+- send the ngrok URL to your Telegram when it changes
 
 Check status:
 
@@ -125,5 +126,8 @@ Shows service health, STT mode, and current OpenClaw session id.
 ## Notes
 
 - `SpeechRecognition` support depends on browser/platform.
+- If unsupported, we can next try local Whisper.
+- The next major step is polishing the startup UX further or replacing browser TTS with higher-quality voice output.
+owser/platform.
 - If unsupported, we can next try local Whisper.
 - The next major step is polishing the startup UX further or replacing browser TTS with higher-quality voice output.

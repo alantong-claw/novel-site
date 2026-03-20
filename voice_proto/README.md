@@ -20,13 +20,14 @@ This prototype now supports a real assistant loop:
 - Backend text route works
 - `/api/text` calls `openclaw agent --session-id ... --json`
 - Conversation context is preserved through a stable OpenClaw session id
-- TTS is still stubbed
+- Browser-native TTS can now read replies aloud when supported
 - Optional OpenAI audio transcription path still exists if `OPENAI_API_KEY` is present
 
 ## Recommended path right now
 
 Use **browser speech recognition** first.
 Best chance of working: **Chrome on Android**.
+If browser TTS is available, replies can also be spoken aloud locally on the phone.
 
 ## Run
 

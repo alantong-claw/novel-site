@@ -3,13 +3,80 @@ const btn = document.getElementById('recordBtn');
 const transcriptEl = document.getElementById('transcript');
 const replyTextEl = document.getElementById('replyText');
 const replyAudio = document.getElementById('replyAudio');
+const voiceSelect = document.getElementById('voiceSelect');
+const speakToggle = document.getElementById('speakToggle');
+const replayBtn = document.getElementById('replayBtn');
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 let isRecording = false;
+let lastReplyText = '';
+let availableVoices = [];
 
 function setReadyState(message = 'Ready') {
   statusEl.textContent = message;
+}
+
+function getSpeechSynthesis() {
+  return window.speechSynthesis || null;
+}
+
+function supportsTts() {
+  return !!getSpeechSynthesis() && typeof window.SpeechSynthesisUtterance !== 'undefined';
+}
+
+function loadVoices() {
+  const synth = getSpeechSynthesis();
+  if (!synth || !voiceSelect) return;
+
+  availableVoices = synth.getVoices();
+  voiceSelect.innerHTML = '';
+
+  const autoOption = document.createElement('option');
+  autoOption.value = '';
+  autoOption.textContent = 'Auto voice';
+  voiceSelect.appendChild(autoOption);
+
+  for (const voice of availableVoices) {
+    const option = document.createElement('option');
+    option.value = voice.name;
+    option.textContent = `${voice.name} (${voice.lang})`;
+    voiceSelect.appendChild(option);
+  }
+}
+
+function pickVoice() {
+  const selected = voiceSelect?.value;
+  if (selected) {
+    return availableVoices.find((voice) => voice.name === selected) || null;
+  }
+
+  return (
+    availableVoices.find((voice) => /zh-TW/i.test(voice.lang)) ||
+    availableVoices.find((voice) => /zh/i.test(voice.lang)) ||
+    availableVoices[0] ||
+    null
+  );
+}
+
+function speakText(text) {
+  if (!supportsTts() || !text) return;
+
+  const synth = getSpeechSynthesis();
+  synth.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voice = pickVoice();
+  if (voice) voice.lang && (utterance.lang = voice.lang);
+  if (voice) utterance.voice = voice;
+  utterance.rate = 1;
+  utterance.pitch = 1;
+
+  utterance.onstart = () => setReadyState('Speaking...');
+  utterance.onend = () => setReadyState('Ready');
+  utterance.onerror = () => setReadyState('Speech playback failed');
+
+  synth.speak(utterance);
 }
 
 async function sendText(text) {
@@ -23,6 +90,8 @@ async function sendText(text) {
   const data = await res.json();
   transcriptEl.textContent = data.transcript || '(no transcript)';
   replyTextEl.textContent = data.replyText || '(no reply)';
+  lastReplyText = data.replyText || '';
+  replayBtn.disabled = !lastReplyText;
 
   if (data.audioUrl) {
     replyAudio.src = data.audioUrl;
@@ -32,7 +101,11 @@ async function sendText(text) {
     replyAudio.load();
   }
 
-  setReadyState('Ready');
+  if (speakToggle?.checked && lastReplyText) {
+    speakText(lastReplyText);
+  } else {
+    setReadyState('Ready');
+  }
 }
 
 function ensureRecognition() {
@@ -75,7 +148,7 @@ function ensureRecognition() {
     isRecording = false;
     btn.classList.remove('recording');
     btn.textContent = 'Tap to Talk';
-    if (!statusEl.textContent.startsWith('Speech recognition failed')) {
+    if (!statusEl.textContent.startsWith('Speech recognition failed') && statusEl.textContent !== 'Speaking...') {
       setReadyState('Ready');
     }
   };
@@ -99,6 +172,22 @@ btn.addEventListener('click', async () => {
   }
 });
 
+replayBtn?.addEventListener('click', () => {
+  if (lastReplyText) speakText(lastReplyText);
+});
+
 if (!SpeechRecognition) {
   setReadyState('SpeechRecognition not supported on this browser');
+}
+
+if (supportsTts()) {
+  loadVoices();
+  const synth = getSpeechSynthesis();
+  if (typeof synth.onvoiceschanged !== 'undefined') {
+    synth.onvoiceschanged = loadVoices;
+  }
+} else {
+  if (voiceSelect) voiceSelect.disabled = true;
+  if (speakToggle) speakToggle.disabled = true;
+  if (replayBtn) replayBtn.disabled = true;
 }

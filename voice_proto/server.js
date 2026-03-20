@@ -14,6 +14,18 @@ const publicDir = path.join(__dirname, 'public');
 app.use(express.json());
 app.use(express.static(publicDir));
 
+app.post('/api/text', async (req, res) => {
+  try {
+    const transcript = (req.body?.text || '').trim();
+    const replyText = await fakeAssistantReply(transcript || '（沒有收到文字）');
+    const audioUrl = await fakeSynthesize(replyText);
+    res.json({ transcript, replyText, audioUrl });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Text pipeline failed.', details: error.message });
+  }
+});
+
 app.post('/api/talk', upload.single('audio'), async (req, res) => {
   try {
     const transcript = await transcribeAudio(req.file?.path, req.file?.originalname);
@@ -35,14 +47,14 @@ app.get('/api/health', (_req, res) => {
 });
 
 function getSttMode() {
-  return process.env.OPENAI_API_KEY ? 'openai-audio-transcription' : 'stub';
+  return process.env.OPENAI_API_KEY ? 'openai-audio-transcription' : 'browser-speech-recognition';
 }
 
 async function transcribeAudio(filePath, originalName = 'recording.webm') {
   if (!filePath) return '沒有收到音訊檔。';
 
   if (!process.env.OPENAI_API_KEY) {
-    return '這是暫時的語音辨識結果。尚未設定 OPENAI_API_KEY，所以目前仍使用 stub。';
+    return '未設定 OPENAI_API_KEY。請改用瀏覽器 SpeechRecognition → /api/text 流程。';
   }
 
   const form = new FormData();

@@ -5,8 +5,8 @@ A minimal push-to-talk mobile web prototype for talking to ClawChan.
 ## What it does
 
 - Mobile-friendly web UI
-- Hold-to-record / tap-to-record
-- Uploads audio to backend
+- Browser built-in speech recognition first
+- Sends recognized text to backend
 - Backend returns:
   - transcript
   - assistant text reply
@@ -14,57 +14,55 @@ A minimal push-to-talk mobile web prototype for talking to ClawChan.
 
 ## Current state
 
-This is a prototype skeleton.
-- Browser recording works
-- Backend upload route works
-- STT is now wired to OpenAI if `OPENAI_API_KEY` is present
+This prototype now has a **no-API-key path**:
+- Browser speech recognition works when supported
+- Backend text route works
 - OpenClaw conversation and TTS are still stubbed
+- Optional OpenAI audio transcription path still exists if `OPENAI_API_KEY` is present
+
+## Recommended path right now
+
+Use **browser speech recognition** first.
+Best chance of working: **Chrome on Android**.
 
 ## Run
 
 ```bash
 cd voice_proto
-cp .env.example .env   # optional
 npm install
 npm start
 ```
 
 Open: http://localhost:3100
 
-## Environment
-
-- `OPENAI_API_KEY` - required for real transcription
-- `OPENAI_TRANSCRIBE_MODEL` - default: `gpt-4o-mini-transcribe`
-- `OPENAI_TRANSCRIBE_LANGUAGE` - default: `zh`
-- `PORT` - default: `3100`
-
 ## API
 
-### `POST /api/talk`
-Multipart form upload with field `audio`.
+### `POST /api/text`
+JSON body:
 
-Returns JSON:
+```json
+{ "text": "你好" }
+```
+
+Returns:
 
 ```json
 {
-  "transcript": "...",
+  "transcript": "你好",
   "replyText": "...",
   "audioUrl": null
 }
 ```
 
+### `POST /api/talk`
+Multipart form upload with field `audio`.
+This is only useful if OpenAI transcription is configured.
+
 ### `GET /api/health`
 Shows service health and current STT mode.
 
-## Next integration points
+## Notes
 
-1. Replace `fakeAssistantReply()` with OpenClaw message/session integration
-2. Replace `fakeSynthesize()` with real TTS
-3. Expose the page externally for mobile access
-
-## Files
-
-- `server.js` - Express server + API endpoints
-- `public/index.html` - mobile UI
-- `public/app.js` - recording/playback logic
-- `public/style.css` - simple styling
+- `SpeechRecognition` support depends on browser/platform.
+- If unsupported, we can next try local Whisper.
+- The next major step is replacing `fakeAssistantReply()` with real OpenClaw integration.

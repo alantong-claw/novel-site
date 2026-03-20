@@ -2,11 +2,12 @@
 
 _Learn about the person you're helping. Update this as you go._
 
-- **Name:**
-- **What to call them:**
+- **Name:** Alan Tong
+- **What to call them:** Alan
 - **Pronouns:** _(optional)_
-- **Timezone:**
+- **Timezone:** Asia/Taipei
 - **Notes:**
+  - Email: alantongsr@gmail.com
 
 ## Context
 

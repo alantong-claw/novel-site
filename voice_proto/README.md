@@ -9,7 +9,7 @@ A minimal push-to-talk mobile web prototype for talking to ClawChan.
 - Sends recognized text to backend
 - Backend forwards text to **real OpenClaw agent**
 - Browser-native TTS can read replies aloud locally
-- Optional ngrok startup script for outside access
+- Optional `cloudflared` startup script for outside access
 
 ## Fast start
 
@@ -22,10 +22,10 @@ cd /home/alantong/ai-work/voice_proto
 
 This will:
 - start `voice_proto`
-- try to start `ngrok` if found
+- try to start `cloudflared` if found
 - print the local health URL
-- print the ngrok public URL when available
-- send the ngrok URL to your Telegram when it changes
+- print the public URL when available
+- send the public URL to your Telegram when it changes
 
 Check status:
 
@@ -59,6 +59,15 @@ You can override it:
 PORT=3100 ./start_voice.sh
 ```
 
+## Telegram URL push
+
+By default, the startup script sends the public URL to Telegram target `8707204748` when the URL changes.
+You can override the target for a single run:
+
+```bash
+VOICE_TELEGRAM_TARGET=123456789 ./start_voice.sh
+```
+
 ## Current state
 
 This prototype now supports a real assistant loop:
@@ -83,7 +92,7 @@ npm install
 npm start
 ```
 
-If port 3100/3110 is busy:
+If port 3110 is busy:
 
 ```bash
 PORT=3110 npm start
@@ -127,7 +136,4 @@ Shows service health, STT mode, and current OpenClaw session id.
 
 - `SpeechRecognition` support depends on browser/platform.
 - If unsupported, we can next try local Whisper.
-- The next major step is polishing the startup UX further or replacing browser TTS with higher-quality voice output.
-owser/platform.
-- If unsupported, we can next try local Whisper.
-- The next major step is polishing the startup UX further or replacing browser TTS with higher-quality voice output.
+- `cloudflared` must be installed for public tunnel startup.

@@ -6,25 +6,25 @@ PORT="${PORT:-3110}"
 TELEGRAM_TARGET="${VOICE_TELEGRAM_TARGET:-8707204748}"
 LOG_DIR="$ROOT_DIR/runtime"
 VOICE_LOG="$LOG_DIR/voice_proto.log"
-NGROK_LOG="$LOG_DIR/ngrok.log"
+TUNNEL_LOG="$LOG_DIR/cloudflared.log"
 VOICE_PID_FILE="$LOG_DIR/voice_proto.pid"
-NGROK_PID_FILE="$LOG_DIR/ngrok.pid"
-LAST_NGROK_URL_FILE="$LOG_DIR/last_ngrok_url.txt"
+TUNNEL_PID_FILE="$LOG_DIR/cloudflared.pid"
+LAST_TUNNEL_URL_FILE="$LOG_DIR/last_tunnel_url.txt"
 
 mkdir -p "$LOG_DIR"
 
-find_ngrok() {
-  if command -v ngrok >/dev/null 2>&1; then
-    command -v ngrok
+find_cloudflared() {
+  if command -v cloudflared >/dev/null 2>&1; then
+    command -v cloudflared
     return 0
   fi
 
   local candidates=(
-    "$HOME/bin/ngrok"
-    "$HOME/.local/bin/ngrok"
-    "/usr/local/bin/ngrok"
-    "/mnt/c/ProgramData/chocolatey/bin/ngrok.exe"
-    "/mnt/c/Users/$USER/AppData/Local/ngrok/ngrok.exe"
+    "$HOME/bin/cloudflared"
+    "$HOME/.local/bin/cloudflared"
+    "/usr/local/bin/cloudflared"
+    "/usr/bin/cloudflared"
+    "/mnt/c/Program Files/Cloudflare/Cloudflared/cloudflared.exe"
   )
 
   for candidate in "${candidates[@]}"; do
@@ -80,66 +80,71 @@ start_voice() {
   echo
 }
 
-get_ngrok_url() {
-  curl -fsS http://127.0.0.1:4040/api/tunnels 2>/dev/null | sed -n 's/.*"public_url":"\([^"]*\)".*/\1/p' | head -n 1 || true
+extract_cloudflared_url() {
+  grep -Eo 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -n 1 || true
 }
 
-send_ngrok_url_to_telegram() {
+send_tunnel_url_to_telegram() {
   local url="$1"
   [ -n "$url" ] || return 0
 
   local previous=""
-  if [ -f "$LAST_NGROK_URL_FILE" ]; then
-    previous="$(cat "$LAST_NGROK_URL_FILE")"
+  if [ -f "$LAST_TUNNEL_URL_FILE" ]; then
+    previous="$(cat "$LAST_TUNNEL_URL_FILE")"
   fi
 
   if [ "$previous" = "$url" ]; then
-    echo "ngrok URL unchanged; skipping Telegram send."
+    echo "cloudflared URL unchanged; skipping Telegram send."
     return 0
   fi
 
   local message="ClawChan voice URL: $url"
   if openclaw message send --channel telegram --target "$TELEGRAM_TARGET" --message "$message" >/dev/null 2>&1; then
-    printf '%s\n' "$url" > "$LAST_NGROK_URL_FILE"
-    echo "Sent ngrok URL to Telegram target $TELEGRAM_TARGET"
+    printf '%s\n' "$url" > "$LAST_TUNNEL_URL_FILE"
+    echo "Sent cloudflared URL to Telegram target $TELEGRAM_TARGET"
   else
-    echo "Failed to send ngrok URL to Telegram."
+    echo "Failed to send cloudflared URL to Telegram."
   fi
 }
 
-start_ngrok() {
-  local ngrok_bin
-  if ! ngrok_bin="$(find_ngrok)"; then
-    echo "ngrok not found. Skipping tunnel startup."
+start_tunnel() {
+  local cloudflared_bin
+  if ! cloudflared_bin="$(find_cloudflared)"; then
+    echo "cloudflared not found. Skipping tunnel startup."
     return 0
   fi
 
-  if is_running "$NGROK_PID_FILE"; then
-    echo "ngrok already running (pid $(cat "$NGROK_PID_FILE"))"
+  if is_running "$TUNNEL_PID_FILE"; then
+    echo "cloudflared already running (pid $(cat "$TUNNEL_PID_FILE"))"
     local existing_url
-    existing_url="$(get_ngrok_url)"
-    [ -n "$existing_url" ] && echo "ngrok URL: $existing_url"
-    send_ngrok_url_to_telegram "$existing_url"
+    existing_url="$(extract_cloudflared_url)"
+    [ -n "$existing_url" ] && echo "cloudflared URL: $existing_url"
+    send_tunnel_url_to_telegram "$existing_url"
     return 0
   fi
 
-  echo "Starting ngrok for port $PORT ..."
-  nohup "$ngrok_bin" http "$PORT" >"$NGROK_LOG" 2>&1 &
-  echo $! >"$NGROK_PID_FILE"
-  sleep 3
+  : > "$TUNNEL_LOG"
+  echo "Starting cloudflared for port $PORT ..."
+  nohup "$cloudflared_bin" tunnel --url "http://127.0.0.1:$PORT" >"$TUNNEL_LOG" 2>&1 &
+  echo $! >"$TUNNEL_PID_FILE"
 
-  local url
-  url="$(get_ngrok_url)"
+  local url=""
+  for _ in $(seq 1 15); do
+    sleep 1
+    url="$(extract_cloudflared_url)"
+    [ -n "$url" ] && break
+  done
+
   if [ -n "$url" ]; then
-    echo "ngrok URL: $url"
-    send_ngrok_url_to_telegram "$url"
+    echo "cloudflared URL: $url"
+    send_tunnel_url_to_telegram "$url"
   else
-    echo "ngrok started, but tunnel URL was not detected yet. Check: $NGROK_LOG"
+    echo "cloudflared started, but tunnel URL was not detected yet. Check: $TUNNEL_LOG"
   fi
 }
 
 start_voice
-start_ngrok
+start_tunnel
 
 echo
 echo "Done."

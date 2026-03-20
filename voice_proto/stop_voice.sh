@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$ROOT_DIR/runtime"
 VOICE_PID_FILE="$LOG_DIR/voice_proto.pid"
-NGROK_PID_FILE="$LOG_DIR/ngrok.pid"
+TUNNEL_PID_FILE="$LOG_DIR/cloudflared.pid"
 
 stop_pid() {
   local label="$1"
@@ -26,5 +26,5 @@ stop_pid() {
   rm -f "$pid_file"
 }
 
-stop_pid "ngrok" "$NGROK_PID_FILE"
+stop_pid "cloudflared" "$TUNNEL_PID_FILE"
 stop_pid "voice_proto" "$VOICE_PID_FILE"

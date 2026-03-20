@@ -8,6 +8,18 @@ VOICE_PID_FILE="$LOG_DIR/voice_proto.pid"
 TUNNEL_PID_FILE="$LOG_DIR/cloudflared.pid"
 TUNNEL_LOG="$LOG_DIR/cloudflared.log"
 
+pid_is_alive() {
+  local pid_file="$1"
+  if [ -f "$pid_file" ]; then
+    local pid
+    pid="$(cat "$pid_file")"
+    if kill -0 "$pid" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
 show_pid() {
   local label="$1"
   local pid_file="$2"
@@ -36,7 +48,9 @@ else
 fi
 
 echo
-if [ -f "$TUNNEL_LOG" ]; then
-  echo "cloudflared URLs:"
-  grep -Eo 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -n 5 || true
+if pid_is_alive "$TUNNEL_PID_FILE"; then
+  echo "cloudflared live URL:"
+  grep -Eo 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -n 1 || echo "(URL not detected yet)"
+else
+  echo "cloudflared live URL: (not running)"
 fi

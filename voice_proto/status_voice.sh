@@ -19,7 +19,7 @@ show_pid() {
       echo "$label: stale pid file ($pid)"
     fi
   else
-    echo "$label: stopped"
+    echo "$label: no pid file"
   fi
 }
 
@@ -27,7 +27,12 @@ show_pid "voice_proto" "$VOICE_PID_FILE"
 show_pid "ngrok" "$NGROK_PID_FILE"
 
 echo "health:"
-curl -fsS "http://127.0.0.1:$PORT/api/health" 2>/dev/null || echo "not reachable on port $PORT"
+if curl -fsS "http://127.0.0.1:$PORT/api/health" 2>/dev/null; then
+  echo
+  echo "voice_proto: responding on port $PORT"
+else
+  echo "not reachable on port $PORT"
+fi
 
 echo
 if curl -fsS http://127.0.0.1:4040/api/tunnels >/dev/null 2>&1; then

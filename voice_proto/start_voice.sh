@@ -47,9 +47,18 @@ is_running() {
   return 1
 }
 
+port_responding() {
+  curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1
+}
+
 start_voice() {
   if is_running "$VOICE_PID_FILE"; then
     echo "voice_proto already running (pid $(cat "$VOICE_PID_FILE"))"
+    return 0
+  fi
+
+  if port_responding; then
+    echo "voice_proto already responding on port $PORT (no pid file)."
     return 0
   fi
 

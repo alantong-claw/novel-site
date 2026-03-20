@@ -38,6 +38,17 @@ Stop everything:
 ./stop_voice.sh
 ```
 
+## Auto-start on login (WSL shell)
+
+This is now wired into `~/.bashrc`.
+When you open an interactive WSL shell, it will try to auto-start the voice stack in the background.
+
+If you want to trigger it manually, you can also run:
+
+```bash
+./autostart_voice.sh
+```
+
 ## Default port
 
 Default is `3110`.

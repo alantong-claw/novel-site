@@ -13,6 +13,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const upload = multer({ dest: path.join(__dirname, 'uploads') });
 const publicDir = path.join(__dirname, 'public');
+const generatedDir = path.join(publicDir, 'generated');
+
+fs.mkdirSync(generatedDir, { recursive: true });
 
 app.use(express.json());
 app.use(express.static(publicDir));
@@ -21,7 +24,7 @@ app.post('/api/text', async (req, res) => {
   try {
     const transcript = (req.body?.text || '').trim();
     const replyText = await askOpenClaw(transcript || '（沒有收到文字）');
-    const audioUrl = await fakeSynthesize(replyText);
+    const audioUrl = await synthesizeSpeech(replyText);
     res.json({ transcript, replyText, audioUrl });
   } catch (error) {
     console.error(error);
@@ -33,7 +36,7 @@ app.post('/api/talk', upload.single('audio'), async (req, res) => {
   try {
     const transcript = await transcribeAudio(req.file?.path, req.file?.originalname);
     const replyText = await askOpenClaw(transcript);
-    const audioUrl = await fakeSynthesize(replyText);
+    const audioUrl = await synthesizeSpeech(replyText);
 
     if (req.file?.path) fs.unlink(req.file.path, () => {});
 
@@ -156,8 +159,56 @@ function sanitizeFilename(filename) {
   return filename.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-async function fakeSynthesize(_replyText) {
-  return null;
+async function synthesizeSpeech(replyText) {
+  const text = String(replyText || '').trim();
+  if (!text) return null;
+
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
+  }
+
+  const model = process.env.OPENAI_TTS_MODEL || 'gpt-4o-mini-tts';
+  const voice = process.env.OPENAI_TTS_VOICE || 'alloy';
+  const format = process.env.OPENAI_TTS_FORMAT || 'mp3';
+  const response = await fetch('https://api.openai.com/v1/audio/speech', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      voice,
+      input: text,
+      format,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`TTS request failed: ${response.status} ${errText}`);
+  }
+
+  const ext = format === 'wav' ? 'wav' : 'mp3';
+  const fileName = `reply-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const filePath = path.join(generatedDir, fileName);
+  const arrayBuffer = await response.arrayBuffer();
+  fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
+  cleanupGeneratedAudio().catch((error) => console.warn('audio cleanup failed', error));
+  return `/generated/${fileName}`;
+}
+
+async function cleanupGeneratedAudio() {
+  const keepMs = Number(process.env.VOICE_PROTO_AUDIO_TTL_MS || 1000 * 60 * 30);
+  const entries = await fs.promises.readdir(generatedDir, { withFileTypes: true });
+  const now = Date.now();
+  await Promise.all(entries.filter((entry) => entry.isFile()).map(async (entry) => {
+    const filePath = path.join(generatedDir, entry.name);
+    const stat = await fs.promises.stat(filePath);
+    if (now - stat.mtimeMs > keepMs) {
+      await fs.promises.unlink(filePath).catch(() => {});
+    }
+  }));
 }
 
 const port = process.env.PORT || 3100;

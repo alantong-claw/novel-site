@@ -12,6 +12,7 @@ A minimal push-to-talk mobile web prototype for talking to ClawChan.
   - transcript
   - assistant text reply
   - optional audio reply URL
+- If `OPENAI_API_KEY` is configured, backend can synthesize reply audio and return `audioUrl`
 
 ## Current state
 
@@ -22,6 +23,7 @@ This prototype now supports a real assistant loop:
 - Conversation context is preserved through a stable OpenClaw session id
 - Browser-native TTS can now read replies aloud when supported
 - Optional OpenAI audio transcription path still exists if `OPENAI_API_KEY` is present
+- Optional OpenAI TTS path now writes generated reply audio under `public/generated/` and returns `audioUrl`
 
 ## Recommended path right now
 
@@ -49,6 +51,10 @@ PORT=3110 npm start
 VOICE_PROTO_SESSION_ID=voice-proto
 VOICE_PROTO_TIMEOUT_MS=120000
 VOICE_PROTO_THINKING=low
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=alloy
+OPENAI_TTS_FORMAT=mp3
+VOICE_PROTO_AUDIO_TTL_MS=1800000
 ```
 
 ## API
@@ -66,9 +72,11 @@ Returns:
 {
   "transcript": "你好",
   "replyText": "...",
-  "audioUrl": null
+  "audioUrl": "/generated/reply-123456.mp3"
 }
 ```
+
+If TTS is not configured or synthesis is unavailable, `audioUrl` may still be `null`.
 
 ### `POST /api/talk`
 Multipart form upload with field `audio`.

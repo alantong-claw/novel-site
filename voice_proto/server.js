@@ -3,8 +3,11 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'url';
 
+const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
@@ -17,7 +20,7 @@ app.use(express.static(publicDir));
 app.post('/api/text', async (req, res) => {
   try {
     const transcript = (req.body?.text || '').trim();
-    const replyText = await fakeAssistantReply(transcript || '（沒有收到文字）');
+    const replyText = await askOpenClaw(transcript || '（沒有收到文字）');
     const audioUrl = await fakeSynthesize(replyText);
     res.json({ transcript, replyText, audioUrl });
   } catch (error) {
@@ -29,7 +32,7 @@ app.post('/api/text', async (req, res) => {
 app.post('/api/talk', upload.single('audio'), async (req, res) => {
   try {
     const transcript = await transcribeAudio(req.file?.path, req.file?.originalname);
-    const replyText = await fakeAssistantReply(transcript);
+    const replyText = await askOpenClaw(transcript);
     const audioUrl = await fakeSynthesize(replyText);
 
     if (req.file?.path) fs.unlink(req.file.path, () => {});
@@ -43,11 +46,67 @@ app.post('/api/talk', upload.single('audio'), async (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'voice-proto', stt: getSttMode() });
+  res.json({
+    ok: true,
+    service: 'voice-proto',
+    stt: getSttMode(),
+    assistant: 'openclaw-agent',
+    sessionId: getVoiceSessionId(),
+  });
 });
+
+function getVoiceSessionId() {
+  return process.env.VOICE_PROTO_SESSION_ID || 'voice-proto';
+}
 
 function getSttMode() {
   return process.env.OPENAI_API_KEY ? 'openai-audio-transcription' : 'browser-speech-recognition';
+}
+
+async function askOpenClaw(message) {
+  const args = [
+    'agent',
+    '--session-id',
+    getVoiceSessionId(),
+    '--message',
+    message,
+    '--json',
+  ];
+
+  if (process.env.VOICE_PROTO_THINKING) {
+    args.push('--thinking', process.env.VOICE_PROTO_THINKING);
+  }
+
+  const { stdout, stderr } = await execFileAsync('openclaw', args, {
+    cwd: path.resolve(__dirname, '..'),
+    maxBuffer: 1024 * 1024 * 4,
+    timeout: Number(process.env.VOICE_PROTO_TIMEOUT_MS || 120000),
+    env: process.env,
+  });
+
+  if (stderr?.trim()) {
+    console.warn(stderr.trim());
+  }
+
+  let data;
+  try {
+    data = JSON.parse(stdout);
+  } catch (error) {
+    throw new Error(`Failed to parse OpenClaw JSON: ${error.message}\n${stdout}`);
+  }
+
+  const payloads = data?.result?.payloads;
+  if (!Array.isArray(payloads) || payloads.length === 0) {
+    throw new Error('OpenClaw returned no payloads.');
+  }
+
+  const text = payloads
+    .map((item) => item?.text)
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+
+  return text || '（OpenClaw 有回覆，但沒有文字內容）';
 }
 
 async function transcribeAudio(filePath, originalName = 'recording.webm') {
@@ -97,10 +156,6 @@ function sanitizeFilename(filename) {
   return filename.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-async function fakeAssistantReply(transcript) {
-  return `收到：${transcript}\n\n這裡是 prototype 回覆。下一步會接到真正的 OpenClaw 對話流程。`;
-}
-
 async function fakeSynthesize(_replyText) {
   return null;
 }
@@ -109,4 +164,5 @@ const port = process.env.PORT || 3100;
 app.listen(port, () => {
   console.log(`Voice prototype listening on http://localhost:${port}`);
   console.log(`STT mode: ${getSttMode()}`);
+  console.log(`Assistant mode: openclaw-agent (${getVoiceSessionId()})`);
 });

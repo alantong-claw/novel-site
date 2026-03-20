@@ -10,6 +10,7 @@ TUNNEL_LOG="$LOG_DIR/cloudflared.log"
 VOICE_PID_FILE="$LOG_DIR/voice_proto.pid"
 TUNNEL_PID_FILE="$LOG_DIR/cloudflared.pid"
 LAST_TUNNEL_URL_FILE="$LOG_DIR/last_tunnel_url.txt"
+VOICE_STATE_FILE="$LOG_DIR/voice_proto.state"
 
 mkdir -p "$LOG_DIR"
 
@@ -53,13 +54,41 @@ port_responding() {
   curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1
 }
 
+voice_state_hash() {
+  (
+    cd "$ROOT_DIR"
+    sha256sum server.js public/app.js public/index.html package.json .env 2>/dev/null
+  ) | sha256sum | awk '{print $1}'
+}
+
+stop_existing_voice_processes() {
+  if [ -f "$VOICE_PID_FILE" ]; then
+    local pid
+    pid="$(cat "$VOICE_PID_FILE")"
+    if kill -0 "$pid" >/dev/null 2>&1; then
+      kill "$pid" >/dev/null 2>&1 || true
+      sleep 1
+    fi
+  fi
+
+  pkill -f '^node server.js$' >/dev/null 2>&1 || true
+  rm -f "$VOICE_PID_FILE"
+}
+
 start_voice() {
-  if is_running "$VOICE_PID_FILE"; then
+  local current_hash previous_hash=""
+  current_hash="$(voice_state_hash)"
+  [ -f "$VOICE_STATE_FILE" ] && previous_hash="$(cat "$VOICE_STATE_FILE")"
+
+  if is_running "$VOICE_PID_FILE" && [ "$current_hash" = "$previous_hash" ]; then
     echo "voice_proto already running (pid $(cat "$VOICE_PID_FILE"))"
     return 0
   fi
 
-  if port_responding; then
+  if [ "$current_hash" != "$previous_hash" ]; then
+    echo "voice_proto source/env changed; restarting ..."
+    stop_existing_voice_processes
+  elif port_responding; then
     echo "voice_proto already responding on port $PORT (no pid file)."
     return 0
   fi
@@ -72,6 +101,7 @@ start_voice() {
   )
 
   sleep 2
+  echo "$current_hash" > "$VOICE_STATE_FILE"
   echo "voice_proto log: $VOICE_LOG"
   curl -fsS "http://127.0.0.1:$PORT/api/health" || {
     echo "voice_proto health check failed. Check: $VOICE_LOG"

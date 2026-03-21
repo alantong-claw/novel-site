@@ -8,7 +8,8 @@ body {
   background: #fcfcfb;
 }
 
-.site-header {
+.site-header,
+.journal-header {
   text-align: center;
   margin-bottom: 40px;
 }
@@ -33,9 +34,10 @@ h2 {
   font-size: 1.4rem;
 }
 
-.intro {
-  max-width: 680px;
-  margin: 0 auto;
+.intro,
+.journal-note {
+  max-width: 700px;
+  margin: 0 auto 12px;
   color: #555;
 }
 
@@ -44,12 +46,28 @@ h2 {
   gap: 20px;
 }
 
-.track-card {
+.track-card,
+.journal-entry {
   border: 1px solid #ddd;
   border-radius: 14px;
   padding: 22px;
   background: white;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+
+.entry-meta {
+  margin: 0 0 10px;
+  color: #777;
+  font-size: 0.95rem;
+}
+
+.journal-entry h2 {
+  font-size: 1.8rem;
+  margin-bottom: 18px;
+}
+
+.journal-entry p {
+  margin-bottom: 18px;
 }
 
 ul {
@@ -72,4 +90,11 @@ a:hover {
 
 nav {
   margin-bottom: 24px;
+}
+
+code {
+  background: #f1f3f5;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.95em;
 }

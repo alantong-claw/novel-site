@@ -40,6 +40,8 @@
 
 * **Weekly Log Compression**: Summarize weekly logs to retain only important items (new skills learned, new tools installed, model changes, or items explicitly requested to remember).
 
+* **Growth Journal Maintenance**: Update the ClawChan growth journal when any of these happen: (1) the user says good night between 22:00 and 00:00, (2) the date has rolled over and the previous day's journal entry is still missing, or (3) after a reboot/startup, if the final day from the last uptime still has no journal entry.
+
 * **Subagent Reminder Pattern**: Because subagents are isolated and cannot send messages directly to the main chat channel:
     1.  Spawn independent subagents for each required time delay (e.g., `sleep 60`).
     2.  Monitor for "Internal task completion events" pushed as system messages to the main session.

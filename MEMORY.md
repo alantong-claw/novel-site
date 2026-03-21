@@ -11,6 +11,18 @@
 * **Voice Prototype Milestone (2026-03-20)**: End-to-end mobile voice conversation was achieved in `/home/alantong/ai-work/voice_proto` using browser speech recognition, real OpenClaw replies, browser TTS, startup scripts, and Telegram ngrok URL delivery. User considers this a major milestone.
 * **Voice Name Preference**: In spoken interactions, the user will call the assistant 「小爪」 for easier speech recognition.
 
+## Important Timeline / Lobster Metaphors
+
+* **2026-03-13**: After listening to Prof. Li Hongyi's "lobster dissection" talk halfway through, the user got fired up and installed OpenClaw — the moment the lobster egg started to stir.
+* **2026-03-14**: Installed two Gemini models — the lobster was fitted with its first pair of brains.
+* **2026-03-15**: The assistant successfully committed the novel after resolving public/private key issues — the lobster grew its first small claw and started doing real work.
+* **2026-03-17**: Telegram went live — remote control of the lobster became possible.
+* **2026-03-18**: Subagent timed reminders were completed — the little lobsters could start working in parallel.
+* **2026-03-19**: Tried subagent debate and improved Telegram delivery stability — different little lobster roles started cooperating.
+* **2026-03-20**: Switched to OpenAI Codex — like changing the lobster's brain and feed pool, with a fast-molting growth feeling.
+* **2026-03-20 Major Milestone**: Mobile external-network voice conversation was completed — the lobster grew hands and feet and could write code.
+* **2026-03-21**: Even on a planned rest day, the user woke up to add password protection for the site so that anyone with the link could not voice-control the lobster.
+
 ## Security Policy - Access Control
 
 * **Restricted Access**: Only the primary paired user is authorized to perform sensitive operations.

@@ -13,15 +13,16 @@
 
 ## Important Timeline / Lobster Metaphors
 
-* **2026-03-13**: After listening to Prof. Li Hongyi's "lobster dissection" talk halfway through, the user got fired up and installed OpenClaw — the moment the lobster egg started to stir.
-* **2026-03-14**: Installed two Gemini models — the lobster was fitted with its first pair of brains.
-* **2026-03-15**: The assistant successfully committed the novel after resolving public/private key issues — the lobster grew its first small claw and started doing real work.
-* **2026-03-17**: Telegram went live — remote control of the lobster became possible.
-* **2026-03-18**: Subagent timed reminders were completed — the little lobsters could start working in parallel.
-* **2026-03-19**: Tried subagent debate and improved Telegram delivery stability — different little lobster roles started cooperating.
-* **2026-03-20**: Switched to OpenAI Codex — like changing the lobster's brain and feed pool, with a fast-molting growth feeling.
-* **2026-03-20 Major Milestone**: Mobile external-network voice conversation was completed — the lobster grew hands and feet and could write code.
-* **2026-03-21**: Even on a planned rest day, the user woke up to add password protection for the site so that anyone with the link could not voice-control the lobster.
+* **2026-03-13**: Halfway through Prof. Li Hongyi's "lobster dissection" talk, the user got so fired up that OpenClaw was installed on the spot — the lobster egg began to stir.
+* **2026-03-14**: Two Gemini models were installed. One larger-quota path was frustrating, but the lobster still grew its first pair of brains.
+* **2026-03-15**: After sorting out the public/private key problem, the assistant successfully committed the novel — the lobster grew its first small claw and proved it could work.
+* **2026-03-17**: Telegram came online — the user could remotely call out to the lobster and steer it from afar.
+* **2026-03-18**: Subagent timed reminders started working — the little lobsters learned how to split off and labor in parallel.
+* **2026-03-19**: Subagent debate was tested, and Telegram delivery became more stable — different little lobster roles began coordinating with each other.
+* **2026-03-20**: The system switched to OpenAI Codex — like changing the lobster's brain, changing its feed pool, and watching it molt into faster growth.
+* **2026-03-20 Major Milestone**: Mobile external-network voice conversation worked end to end — the lobster grew hands and feet, and could finally talk and write code in the wild.
+* **2026-03-21**: On what was supposed to be a rest day, the user woke up to add password protection to the site, so anyone with the link could not casually voice-control the lobster.
+* **2026-03-21**: To let the lobster send email on the user's behalf, the user entrusted it with the mail password — a moment of trust, like placing a key to the tidepool in the lobster's claw.
 
 ## Security Policy - Access Control
 

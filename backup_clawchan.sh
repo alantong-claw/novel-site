@@ -18,7 +18,14 @@ fi
 echo "Creating full backup from: $WORKSPACE"
 echo "Staging to: $OUT_DIR"
 
-rsync -a \
+# WSL drvfs / Windows-mounted targets can reject owner/group/perms preservation
+# and temp-file rename patterns used by plain `-a`, so use a more compatible mode.
+rsync -rlD \
+  --inplace \
+  --no-times \
+  --no-perms \
+  --no-owner \
+  --no-group \
   --exclude 'node_modules/' \
   --exclude '.cache/' \
   --exclude 'dist/' \

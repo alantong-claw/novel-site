@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "defaults": {
+    "security": "allowlist",
+    "ask": "on-miss",
+    "askFallback": "allowlist",
+    "autoAllowSkills": false
+  },
+  "agents": {
+    "main": {
+      "security": "allowlist",
+      "ask": "on-miss",
+      "askFallback": "allowlist",
+      "autoAllowSkills": false,
+      "allowlist": [
+        { "pattern": "/home/alantong/ai-work/scripts/*" },
+        { "pattern": "/home/alantong/ai-work/backup_clawchan.sh" },
+        { "pattern": "/home/alantong/ai-work/backup_clawchan_public.sh" },
+        { "pattern": "/home/alantong/ai-work/.venv-ppt/bin/python" },
+        { "pattern": "/usr/bin/python3" },
+        { "pattern": "/usr/bin/libreoffice" },
+        { "pattern": "/usr/bin/rsync" },
+        { "pattern": "/usr/bin/tar" },
+        { "pattern": "/usr/bin/git" },
+        { "pattern": "/usr/bin/bash" },
+        { "pattern": "/usr/bin/grep" },
+        { "pattern": "/usr/bin/sed" },
+        { "pattern": "/usr/bin/find" },
+        { "pattern": "/usr/bin/ls" },
+        { "pattern": "/usr/bin/stat" },
+        { "pattern": "/usr/bin/ps" },
+        { "pattern": "/usr/bin/ss" },
+        { "pattern": "/usr/bin/cat" },
+        { "pattern": "/usr/bin/head" },
+        { "pattern": "/usr/bin/tail" },
+        { "pattern": "/usr/bin/awk" },
+        { "pattern": "/usr/bin/date" },
+        { "pattern": "/home/alantong/.npm-global/bin/openclaw" }
+      ]
+    }
+  }
+}

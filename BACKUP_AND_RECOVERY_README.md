@@ -45,6 +45,12 @@ bash /home/alantong/ai-work/scripts/run_weekly_backup.sh
 - 寫入 `memory/backup-run.log`
 - 只保留最新 5 份完整備份
 
+若要避免聊天/exec 回合過長被中斷，可改用背景模式：
+```bash
+bash /home/alantong/ai-work/scripts/start_weekly_backup_bg.sh
+bash /home/alantong/ai-work/scripts/check_weekly_backup_bg.sh
+```
+
 ### 出事時
 1. 找最新完整備份
 2. 依 SOP 還原

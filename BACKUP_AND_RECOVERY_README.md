@@ -34,6 +34,16 @@ bash backup_clawchan_public.sh
 - 重要改動後：先 commit
 - 每隔幾天：跑一次完整備份
 - 想放到比較公開的位置：跑一次 public backup
+- 若要跑完整週備份流程（含狀態紀錄與保留策略）：
+```bash
+bash /home/alantong/ai-work/scripts/run_weekly_backup.sh
+```
+
+這會：
+- 執行完整私密備份
+- 寫入 `memory/backup-state.json`
+- 寫入 `memory/backup-run.log`
+- 只保留最新 5 份完整備份
 
 ### 出事時
 1. 找最新完整備份

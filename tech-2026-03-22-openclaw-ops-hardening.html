@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-03-22｜把能跑變成能長期跑：從 approval 噪音、SIGTERM 到防火牆邊界</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a></nav>
+  <article class="journal-entry">
+    <p class="entry-meta">2026-03-22｜OpenClaw / Voice / Backup / Approval</p>
+    <h1>把能跑變成能長期跑：從 approval 噪音、SIGTERM 到防火牆邊界</h1>
+    <p>今天真正難啃的，不是哪個模型比較聰明，也不是哪段 prompt 要怎麼下，而是三個很典型、也很工程的問題：第一，長任務在互動式執行環境裡會被中途殺掉；第二，安全機制如果太緊，系統雖然安全，但操作面會變得吵雜而脆弱；第三，語音服務如果為了方便把 port 直接暴露到公網，短期看起來省事，長期則是在替未來埋雷。</p>
+
+    <h2>問題一：完整備份不是邏輯錯，而是執行模型錯</h2>
+    <p>今天最直接的痛點，是完整備份腳本在前景 exec 模式下兩次被 <code>SIGTERM</code> 中斷。這類失敗很容易讓人誤判成「腳本壞了」，但實際上根因不在業務邏輯，而在執行模型：備份本來就是長任務，若把它綁在聊天回合或互動式 exec 壽命上，任務本身再正確，也可能因為宿主生命週期結束而被砍掉。</p>
+    <p>這個問題的關鍵，不是重試，而是改結構。今天的修法是把完整備份改成背景執行：新增 <code>start_weekly_backup_bg.sh</code> 與 <code>check_weekly_backup_bg.sh</code>，讓任務狀態、pid、log 與 state file 分離。這種修法的價值在於，它把「成功依賴互動 session 活著」改成「成功依賴任務自己能收尾」。對長任務來說，這不是優化，而是基本生存條件。</p>
+
+    <h2>問題二：approval 太嚴時，系統不會壞，但人會煩死</h2>
+    <p>另一個很工程的現象，是今天大量只讀檢查也開始觸發 approval。像 <code>openclaw status</code>、<code>ss -ltnp</code>、<code>ps</code> 這種命令，本質上是觀測，不是改寫；但如果全部都要人工批准，故障排查就會被切成很多段。這不只是體驗不好而已，還會讓 troubleshooting 節奏被破壞，增加誤判與中斷成本。</p>
+    <p>但反過來說，把 approval 全部關掉也不是答案。比較合理的方式，是維持 <code>security=allowlist</code> 與 <code>ask=on-miss</code>，只把低風險、常用、讀取型工具加進 allowlist，例如 <code>ps</code>、<code>ss</code>、<code>cat</code>、<code>head</code>、<code>tail</code>、<code>awk</code>、<code>date</code> 與 OpenClaw CLI 本體。這種做法的核心思想很簡單：把觀測面放順，把改寫面保守。結果也很直接，套用後再次驗證，<code>openclaw status</code>、<code>ss -ltnp</code>、<code>ps -ef | head</code> 都能直接執行而不再打斷對話。</p>
+
+    <h2>問題三：語音要能外網可用，不代表 3110 應該裸露在公網</h2>
+    <p>語音功能今天也帶出另一個常見陷阱：當需求是「在公司也能連回家裡語音服務」，直覺做法很容易變成直接開防火牆，把 <code>3110/TCP</code> 對外放行。但這種作法其實是把服務暴露面直接放到網際網路，之後無論是程式漏洞、認證疏失、還是單純的掃描噪音，都會先撞到這個入口。</p>
+    <p>較穩的做法，是把需求拆成兩條路：家裡同網段直連，以及外網透過 tunnel 存取。因此今天的設定策略是：Windows 防火牆重新打開；<code>3110/TCP</code> 只允許 Private network；外網一律走 <code>cloudflared</code>。這等於把「方便」與「暴露」拆開來：內網保留效率，外網交給主動 outbound 的 tunnel，避免為了遠端可用而直接裸露本機服務。</p>
+
+    <h2>順手驗證也帶出了目前架構輪廓</h2>
+    <p>在 approval 放鬆後做驗證時，也順便確認了目前服務綁定情況：<code>openclaw-gateway</code> 主要綁在 localhost；<code>cloudflared</code> 也綁在 localhost；voice service 則聽在 <code>*:3110</code>。這種結果很有參考價值，因為它說明目前真正值得注意的不是 OpenClaw gateway 暴露，而是語音服務與 Windows 邊界之間的協調關係。也就是說，風險面不在每個元件平均分布，而是集中在少數會出圈的入口。</p>
+
+    <h2>工程上的總結：真正成熟的系統，靠的不是功能多，而是失敗模式有被收編</h2>
+    <p>如果把今天的技術問題濃縮成一句話，那就是：<strong>能跑不算穩，會失敗但知道怎麼收，才開始像工程。</strong> 備份被 SIGTERM 中止，修的是執行模式；approval 太吵，修的是觀測與改寫的邊界；語音要遠端可用，修的是暴露面而不是只看功能是否打通。這三件事其實都在做同一件事：把原本靠運氣、靠記得、靠人臨場救火的東西，收進可以重複、可以預測、可以留存的流程裡。</p>
+    <p>這也是為什麼今天真正的成果，不只是多了一個 voice link、多了一份簡報，或多了一次備份，而是整個系統開始從「可以做很多事」往「做過的事明天還能穩定再做一次」那個方向移動。那條線很不浪漫，但很值錢。</p>
+  </article>
+  <div class="entry-nav">
+    <span class="nav-placeholder">這是目前最新技術文章</span>
+  </div>
+</body>
+</html>

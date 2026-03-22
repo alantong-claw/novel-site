@@ -1,5 +1,7 @@
-# HEARTBEAT.md
+# HEARTBEAT.md - Periodic Tasks
 
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
+# Novel chapter automation moved to OpenClaw cron + scripts/weekly_novel_check.sh
+# Do not rely on heartbeat for the weekly Sunday chapter job.
 
-# Add tasks below when you want the agent to check something periodically.
+# Check system heartbeat state
+# Read memory/heartbeat-state.json to track execution.

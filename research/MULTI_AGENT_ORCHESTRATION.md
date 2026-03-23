@@ -77,6 +77,8 @@
 - Round N 全部到齊 → 立刻發 Round N+1 或進 synthesis
 - Synthesis 開始 → 推狀態
 - Deliverables 開始生成 → 推狀態
+- 若產檔失敗（如腳本錯誤 / 寄送失敗）→ 立即推狀態，說明卡點並開始補修
+- 補修後重新產檔 / 補寄 → 再推狀態
 - Mail / final delivery 完成 → 推最終完成
 
 ### B. 多 subagent 分工任務

@@ -169,6 +169,10 @@ bash /home/alantong/ai-work/scripts/install_excel_tools.sh
    - Excel 正反重點表
    - PowerPoint 報告版
    - email 寄送
+5. 若在產檔 / 寄信階段失敗：
+   - 要主動回報卡點
+   - 立即補修
+   - 補寄後再回報完成
 
 參考文件：
 - `/home/alantong/ai-work/research/MULTI_AGENT_ORCHESTRATION.md`

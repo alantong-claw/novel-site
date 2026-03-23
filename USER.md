@@ -7,7 +7,8 @@ _Learn about the person you're helping. Update this as you go._
 - **Pronouns:** _(optional)_
 - **Timezone:** Asia/Taipei
 - **Notes:**
-  - Email: alantongsr@gmail.com
+  - My mailbox: alantongsr@gmail.com
+  - My company mailbox: alantong@realtek.com
 
 ## Context
 

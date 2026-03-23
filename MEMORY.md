@@ -38,6 +38,8 @@
 
 * **Autonomous Git Commits**: When asked to publish or save work, if the user confirms with "OK", proceed automatically with `git add`, `git commit`, and `git push` without asking the user to run manual terminal commands.
 
+* **Research Workflow Preference**: When the user asks to "research" a topic, use at least two subagents. Subagent A should propose the plan, perspectives, evidence, and initial approach (deep-research style). Subagent B should gather material to challenge A, identify missing evidence, and raise counterarguments. Run at least 3 rounds (or stop earlier only if the positions have clearly converged). After the debate, the main agent must make the final judgment and produce: (1) a full text report, (2) an Excel sheet listing pro/con key points, (3) a report-style PowerPoint, and (4) send all deliverables to the user's mailbox by default; if the user asks for the company mailbox, send to both mailboxes.
+
 * **Weekly Log Compression**: Summarize weekly logs to retain only important items (new skills learned, new tools installed, model changes, or items explicitly requested to remember).
 
 * **Growth Journal Maintenance**: Update the ClawChan growth journal when any of these happen: (1) the user says good night between 22:00 and 00:00, (2) the date has rolled over and the previous day's journal entry is still missing, or (3) after a reboot/startup, if the final day from the last uptime still has no journal entry.

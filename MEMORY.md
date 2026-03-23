@@ -39,6 +39,7 @@
 * **Autonomous Git Commits**: When asked to publish or save work, if the user confirms with "OK", proceed automatically with `git add`, `git commit`, and `git push` without asking the user to run manual terminal commands.
 
 * **Research Workflow Preference**: When the user asks to "research" a topic, use at least two subagents. Subagent A should propose the plan, perspectives, evidence, and initial approach (deep-research style). Subagent B should gather material to challenge A, identify missing evidence, and raise counterarguments. Run at least 3 rounds (or stop earlier only if the positions have clearly converged). After the debate, the main agent must make the final judgment and produce: (1) a full text report, (2) an Excel sheet listing pro/con key points, (3) a report-style PowerPoint, and (4) send all deliverables to the user's mailbox by default; if the user asks for the company mailbox, send to both mailboxes.
+* **Research Monitoring Rule**: During research workflows, the main agent must actively monitor round completion and push status updates without waiting for user nudges. After one side of a round arrives, send a short progress update; after both sides arrive, immediately dispatch the next round or begin final synthesis. Do not stall between rounds.
 
 * **Weekly Log Compression**: Summarize weekly logs to retain only important items (new skills learned, new tools installed, model changes, or items explicitly requested to remember).
 

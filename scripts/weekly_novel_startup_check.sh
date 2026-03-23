@@ -28,3 +28,8 @@ fi
   echo "[$(TZ=Asia/Taipei date '+%F %T')] startup catch-up triggered"
   "$ROOT/scripts/weekly_novel_check.sh"
 } >> "$LOG_FILE" 2>&1 &
+
+# Also check whether yesterday's growth journal entry is missing.
+if [[ -x "$ROOT/scripts/growth_journal_startup_check.sh" ]]; then
+  "$ROOT/scripts/growth_journal_startup_check.sh" >> "$LOG_FILE" 2>&1 &
+fi

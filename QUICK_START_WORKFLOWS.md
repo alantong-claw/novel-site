@@ -173,6 +173,9 @@ bash /home/alantong/ai-work/scripts/install_excel_tools.sh
    - 要主動回報卡點
    - 立即補修
    - 補寄後再回報完成
+6. 若在語音互動裡收到長任務：
+   - 先用短句確認已收到（如：OK / 收到，我開始處理）
+   - 完成後再主動回報結果
 
 參考文件：
 - `/home/alantong/ai-work/research/MULTI_AGENT_ORCHESTRATION.md`

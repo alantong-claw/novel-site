@@ -176,6 +176,7 @@ bash /home/alantong/ai-work/scripts/install_excel_tools.sh
 6. 若在語音互動裡收到長任務：
    - 先用短句確認已收到（如：OK / 收到，我開始處理）
    - 完成後再主動回報結果
+7. 語音回覆不要依賴 markdown 強調；先把 `*` 過濾掉，避免 TTS 念成「星號」
 
 參考文件：
 - `/home/alantong/ai-work/research/MULTI_AGENT_ORCHESTRATION.md`

@@ -103,6 +103,15 @@ bash /home/alantong/ai-work/scripts/handle_backup_ok.sh
 
 ---
 
+## 5.5 語音連結 / 狀態檢查
+
+### 查目前語音服務與 cloudflared link
+```bash
+bash /home/alantong/ai-work/scripts/check_voice_link.sh
+```
+
+---
+
 ## 6. Office / Python 環境
 
 ### Office 工具鏈安裝
@@ -141,7 +150,30 @@ bash /home/alantong/ai-work/scripts/install_excel_tools.sh
 
 ---
 
-## 9. 使用原則
+## 9. 研究任務的固定節奏
+
+當 Alan 說「研究某主題」時，預設要照這個節奏：
+
+1. 至少開兩個 subagent
+   - A：提出方案 / 架構 / 做法 / 正向主張
+   - B：提出反對意見 / 風險 / 缺口 / 反證
+2. 至少 3 輪（除非已明顯收斂）
+3. 每輪第一個結果到時，要主動推一則進度
+4. 每輪雙方結果都到時，要立刻發下一輪或進 synthesis
+5. 不可停在等待 Alan 追問
+6. 最後一定要輸出：
+   - 完整文字檔
+   - Excel 正反重點表
+   - PowerPoint 報告版
+   - email 寄送
+
+參考文件：
+- `/home/alantong/ai-work/research/MULTI_AGENT_ORCHESTRATION.md`
+- `/home/alantong/ai-work/research/RESEARCH_ORCHESTRATION.md`
+
+---
+
+## 10. 使用原則
 
 1. 能用固定腳本，就不要臨時拼長命令
 2. 常用流程優先走 `scripts/` 裡的標準入口
@@ -150,7 +182,7 @@ bash /home/alantong/ai-work/scripts/install_excel_tools.sh
 
 ---
 
-## 10. 如果未來忘了從哪開始
+## 11. 如果未來忘了從哪開始
 
 先看這份：
 - `/home/alantong/ai-work/QUICK_START_WORKFLOWS.md`

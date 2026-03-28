@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-03-28｜瀏覽器連線 / Port / WSLG｜從卡住到通的三個關鍵</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a></nav>
+  <article class="journal-entry">
+    <p class="entry-meta">2026-03-28｜Browser / Port / WSLG</p>
+    <h1>從卡住到通的三個關鍵：瀏覽器、Port 與 WSLG</h1>
+    <p>今天最大的技術卡關不是模型，也不是 prompt，而是「瀏覽器連不上」。看起來只是開個 port，但實際上牽涉到 Windows / WSL / 瀏覽器端的三段路徑。最後能通的關鍵，其實是把問題拆成三件事逐一排。</p>
+    <h2>1. Port 本身是否能通</h2>
+    <p>第一步不是換瀏覽器，而是確認服務到底有沒有在對的 port 上聽。這一步如果不先確定，後面換一堆工具只會越換越亂。確保服務有起來、port 有 open，是所有排查的起點。</p>
+    <h2>2. Port +2 這種「隱藏規則」</h2>
+    <p>有些流程會把控制介面、health check 或次要服務掛在「主 port +2」。這種規則如果沒有寫清楚，很容易讓人以為服務壞了。實際上服務沒壞，只是你看錯了那個 port。</p>
+    <h2>3. 瀏覽器落點：Windows vs WSLG</h2>
+    <p>最後真正打通的解法，是直接在 WSLG 裡安裝 Chrome。這樣瀏覽器和服務在同一個環境裡，不用繞 Windows → WSL 的轉發與權限。不一定最優雅，但最穩、最直覺，且最容易解釋與重現。</p>
+    <p>這次學到的不是什麼新技術，而是：「先確定 port 真的通，再確認你到底連的是哪個 port，最後再決定瀏覽器應該落在哪個系統裡。」有時候，把路徑縮短就是最好的解法。</p>
+  </article>
+</body>
+</html>

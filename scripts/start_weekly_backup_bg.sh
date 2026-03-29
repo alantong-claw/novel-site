@@ -19,6 +19,6 @@ fi
 
 printf '{"last_run":"%s","status":"running","mode":"background"}\n' "$TS" > "$STATEFILE"
 
-nohup bash "$ROOT/scripts/run_weekly_backup_and_report.sh" >> "$LOG" 2>&1 &
+nohup env BACKUP_BG=1 bash "$ROOT/scripts/run_weekly_backup_and_report.sh" >> "$LOG" 2>&1 &
 echo $! > "$PIDFILE"
 echo "Started background backup pid $(cat "$PIDFILE")"

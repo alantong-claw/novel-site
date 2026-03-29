@@ -27,8 +27,26 @@ if [[ -f "$STATE_FILE" ]] && grep -q "$TODAY" "$STATE_FILE"; then
   exit 0
 fi
 
+SESSION_KEY="agent:main:cron:ebebf992-4486-49cb-aa07-4f32de6891cf"
+SESSION_ID="$(openclaw status --json | node -e '
+let data="";
+process.stdin.on("data", d => data += d);
+process.stdin.on("end", () => {
+  try {
+    const key = "agent:main:cron:ebebf992-4486-49cb-aa07-4f32de6891cf";
+    const j = JSON.parse(data);
+    const entry = (j.sessions && j.sessions.recent || []).find(e => e.key === key);
+    if (entry && entry.sessionId) process.stdout.write(entry.sessionId);
+  } catch (e) {}
+});
+')"
+if [[ -z "$SESSION_ID" ]]; then
+  echo "Could not resolve session id for $SESSION_KEY; aborting."
+  exit 1
+fi
+
 MESSAGE="Today is Sunday after 08:00 Asia/Taipei. Check whether a novel chapter for the current Sunday-Saturday week already exists in /home/alantong/ai-work/novel_site. If missing, draft the next chapter, save it in novel_site, update index.html, then commit and push inside the novel_site git repo. If a chapter for this week already exists, do nothing except report that it is already done. After successful handling, write today's date ($TODAY) into /home/alantong/ai-work/memory/novel-progress.json as the last_run date."
 
-openclaw agent --message "$MESSAGE" --json >/tmp/weekly_novel_check.json
+openclaw agent --session-id "$SESSION_ID" --message "$MESSAGE" --json >/tmp/weekly_novel_check.json
 printf '{"last_run":"%s"}\n' "$TODAY" > "$STATE_FILE"
 echo "Handled weekly novel check for $TODAY"

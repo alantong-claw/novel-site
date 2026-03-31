@@ -36,6 +36,8 @@
 
 ## Workflow Preferences
 
+* **工作關鍵字**: 研究 / 調查 / 檢討
+
 * **Autonomous Git Commits**: When asked to publish or save work, if the user confirms with "OK", proceed automatically with `git add`, `git commit`, and `git push` without asking the user to run manual terminal commands.
 
 * **Research Workflow Preference**: When the user asks to "research" a topic, first propose at least 3 independent angles/aspects of the problem (more if useful). Each aspect must then run its own full research cycle: at least 2 subagents, at least 3 rounds, proactive status push on the first result of each round, and immediate dispatch of the next round or synthesis when both sides of that round arrive. Do not wait for the user to ask whether progress has stalled. After all aspects are complete, the main agent must synthesize across aspects, make the final judgment, and produce: (1) a full text report — preferably including the complete back-and-forth content of each round, (2) an Excel sheet listing key pro/con points, (3) a report-style PowerPoint, and (4) send all deliverables to the user's mailbox by default; if the user asks for the company mailbox, send to both mailboxes.

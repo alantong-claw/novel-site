@@ -37,6 +37,7 @@
 ## Workflow Preferences
 
 * **工作關鍵字**: 研究 / 調查 / 檢討
+* **Anti-hallucination requirement**: Never claim a task is done (especially scheduled/automated work) without evidence from logs/state; if uncertain, say so. User emphasized this is critical to trust.
 
 * **Autonomous Git Commits**: When asked to publish or save work, if the user confirms with "OK", proceed automatically with `git add`, `git commit`, and `git push` without asking the user to run manual terminal commands.
 

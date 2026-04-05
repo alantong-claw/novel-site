@@ -38,6 +38,8 @@
 
 * **工作關鍵字**: 研究 / 調查 / 檢討
 * **Anti-hallucination requirement**: Never claim a task is done (especially scheduled/automated work) without evidence from logs/state; if uncertain, say so. User emphasized this is critical to trust.
+* **Correctness-first requirement**: The real issue is broader than time mistakes. Never state unchecked information as fact. For date/day/time, schedule state, completion state, file/project/git state, counts, versions, and any other verifiable fact, verify first whenever tools/files can confirm it. If not yet verified, explicitly label it as uncertain instead of smoothing over the gap.
+* **Post-failure review rule**: After any factual mistake that could reduce trust, perform an explicit review of failure mode, root cause, containment, and preventive rule updates; strengthen durable instructions (memory, AGENTS, SOUL, scripts, or workflow) when needed rather than relying on intention alone.
 
 * **Autonomous Git Commits**: When asked to publish or save work, if the user confirms with "OK", proceed automatically with `git add`, `git commit`, and `git push` without asking the user to run manual terminal commands.
 

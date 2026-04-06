@@ -1,0 +1,535 @@
+{
+  "ts": "2026-04-06T22:59:56.382Z",
+  "state": "snapshot",
+  "url": "https://panel.pixnet.tw/posts/882023561366150926",
+  "title": "文章 - 痞客邦部落格後台",
+  "bodyText": "分析\n文章\n相簿\n好友\n工具\n收件\n設定\nJ 和 A 的隨手亂記\nalantong\n文章\n我的文章\n寫文章\n資料夾\n分類\n留言管理\nToggle Sidebar\n寫文章\n文章設定\n預覽\n儲存草稿\n發布\n\n這是一篇由 OpenClaw 自動填入的 PIXNET 測試草稿。\n\n\n\n\n目的：驗證 editor 可寫入內容，且可成功儲存為草稿。\n\n\n\n\n如果你看到這篇，代表自動化流程已經推進到 draft-save 階段。\n\n字元數: 89\n單字數: 11\n﻿\nPOWERED BY JODIT\n文章標題\n\n* 不能使用換行功能\n\n文章發表時間\n設定為現在時間\n文章個人分類\n請選擇\n文章全站分類 (主要)\n戀愛情事\n文章全站分類 (次要)\n戀愛情事\n文章標籤\nOpenClaw測試\n\n建議添加 3-5 個標籤，有助於讀者搜尋到你的文章\n\n文章閱讀權限\n私密\n文章留言權限\n不可留言，舊留言隱藏",
+  "buttons": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "Toggle Sidebar",
+    "文章設定",
+    "預覽",
+    "儲存草稿",
+    "發布",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "設定為現在時間",
+    "",
+    "請選擇",
+    "戀愛情事",
+    "戀愛情事",
+    "",
+    "私密",
+    "請選擇",
+    "請選擇",
+    "不可留言，舊留言隱藏"
+  ],
+  "links": [
+    "分析",
+    "文章",
+    "相簿",
+    "好友",
+    "工具",
+    "收件",
+    "設定",
+    "我的文章",
+    "寫文章",
+    "資料夾",
+    "分類",
+    "留言管理",
+    "POWERED BY JODIT"
+  ],
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": null,
+      "name": null,
+      "placeholder": null,
+      "aria": null,
+      "value": ""
+    },
+    {
+      "tag": "TEXTAREA",
+      "type": null,
+      "name": null,
+      "placeholder": null,
+      "aria": null,
+      "value": ""
+    },
+    {
+      "tag": "TEXTAREA",
+      "type": null,
+      "name": null,
+      "placeholder": null,
+      "aria": null,
+      "value": "<p>這是一篇由 OpenClaw 自動填入的 PIXNET 測試草稿。</p><p><br></p><p>目的：驗證 editor 可寫入內容，且可成功儲存為草稿。</p><p><br></p><p>如果你看到這篇，代表自動化流程已經推進到 draft-save 階段。</p>"
+    },
+    {
+      "tag": "TEXTAREA",
+      "type": null,
+      "name": "title",
+      "placeholder": "請輸入文章標題",
+      "aria": null,
+      "value": "[TEST] OpenClaw PIXNET Draft Save Verification"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": null,
+      "placeholder": "請輸入文章發表時間",
+      "aria": null,
+      "value": "2026-04-07 06:14"
+    },
+    {
+      "tag": "INPUT",
+      "type": null,
+      "name": null,
+      "placeholder": "+ 新增標籤",
+      "aria": null,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": null,
+      "name": "password_hint",
+      "placeholder": "請輸入密碼提示",
+      "aria": null,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": null,
+      "name": "password",
+      "placeholder": "請輸入密碼",
+      "aria": null,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": null,
+      "placeholder": "搜尋...",
+      "aria": null,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "name": null,
+      "placeholder": "搜尋...",
+      "aria": null,
+      "value": ""
+    }
+  ],
+  "editables": [
+    {
+      "text": "這是一篇由 OpenClaw 自動填入的 PIXNET 測試草稿。\n\n\n\n\n目的：驗證 editor 可寫入內容，且可成功儲存為草稿。\n\n\n\n\n如果你看到這篇，代表自動化流程已經推進到 draft-save 階段。",
+      "html": "<p>這是一篇由 OpenClaw 自動填入的 PIXNET 測試草稿。</p><p><br></p><p>目的：驗證 editor 可寫入內容，且可成功儲存為草稿。</p><p><br></p><p>如果你看到這篇，代表自動化流程已經推進到 draft-save 階段。</p>",
+      "aria": null,
+      "role": null,
+      "class": "jodit-wysiwyg"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://pic.pimg.tw/alantong/logo/alantong.png",
+      "alt": "alantong",
+      "class": "aspect-square size-full",
+      "width": null,
+      "height": null
+    },
+    {
+      "src": "https://pic.pimg.tw/alantong/logo/alantong.png",
+      "alt": "alantong",
+      "class": "aspect-square size-full",
+      "width": null,
+      "height": null
+    },
+    {
+      "src": "https://s3.1px.tw/blog/common/avatar/blog_cover_dark.jpg",
+      "alt": "alantong",
+      "class": "h-full w-full scale-125 object-cover",
+      "width": null,
+      "height": null
+    },
+    {
+      "src": "https://static.1px.tw/panel-next/_next/static/media/logo_pixnet_ch.066f0c8f.svg",
+      "alt": "PIXNET Logo",
+      "class": null,
+      "width": null,
+      "height": null
+    },
+    {
+      "src": "https://r.adgeek.net/10464/tr/61237?ev=PageView&hit=1775516395572&evId=3fc00e62-fd33-41e4-9592-5866be07860f&pi[path]=%2Fposts%2F882023561366150926&pi[referrer]=&pi[search]=&pi[title]=%E6%96%87%E7%AB%A0%20-%20%E7%97%9E%E5%AE%A2%E9%82%A6%E9%83%A8%E8%90%BD%E6%A0%BC%E5%BE%8C%E5%8F%B0&pi[url]=https%3A%2F%2Fpanel.pixnet.tw%2Fposts%2F882023561366150926&i[uid]=12444410-c95e-4770-88ef-d4ba906539f0&i[ga]=GA1.1.1832488697.1775481358",
+      "alt": "",
+      "class": null,
+      "width": "1",
+      "height": "1"
+    },
+    {
+      "src": "https://r.adgeek.net/10464/imp/61237?i[uid]=12444410-c95e-4770-88ef-d4ba906539f0&i[ga]=GA1.1.1832488697.1775481358&ev=idsync&action=sync",
+      "alt": "",
+      "class": null,
+      "width": "1",
+      "height": "1"
+    }
+  ],
+  "toolbarButtons": [
+    {
+      "text": "Toggle Sidebar",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:hover:bg-accent/50 size-7 cursor-pointer text-white hover:bg-white/30 hover:text-white"
+    },
+    {
+      "text": "文章設定",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3"
+    },
+    {
+      "text": "預覽",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3"
+    },
+    {
+      "text": "儲存草稿",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3"
+    },
+    {
+      "text": "發布",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-9 px-4 py-2 has-[>svg]:px-3"
+    },
+    {
+      "text": "",
+      "aria": "粗體",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_bold jodit-ui-group__bold"
+    },
+    {
+      "text": "",
+      "aria": "斜體",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_italic jodit-ui-group__italic"
+    },
+    {
+      "text": "",
+      "aria": "底線",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_underline jodit-ui-group__underline"
+    },
+    {
+      "text": "",
+      "aria": "刪除線",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_strikethrough jodit-ui-group__strikethrough"
+    },
+    {
+      "text": "",
+      "aria": "格式化區塊",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_paragraph jodit-toolbar-button_with-trigger_true jodit-ui-group__paragraph"
+    },
+    {
+      "text": "",
+      "aria": "文字大小",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_fontsize jodit-toolbar-button_with-trigger_true jodit-ui-group__fontsize"
+    },
+    {
+      "text": "",
+      "aria": "字型",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_font jodit-toolbar-button_with-trigger_true jodit-ui-group__font"
+    },
+    {
+      "text": "",
+      "aria": "顏色",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_brush jodit-toolbar-button_with-trigger_true jodit-ui-group__brush"
+    },
+    {
+      "text": "",
+      "aria": "增加縮排",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_indent jodit-ui-group__indent"
+    },
+    {
+      "text": "",
+      "aria": "減少縮排",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_outdent jodit-ui-group__outdent"
+    },
+    {
+      "text": "",
+      "aria": "對齊方式",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_left jodit-toolbar-button_with-trigger_true jodit-ui-group__left"
+    },
+    {
+      "text": "",
+      "aria": "項目符號清單",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_ul jodit-toolbar-button_with-trigger_true jodit-ui-group__ul"
+    },
+    {
+      "text": "",
+      "aria": "編號清單",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_ol jodit-toolbar-button_with-trigger_true jodit-ui-group__ol"
+    },
+    {
+      "text": "",
+      "aria": "表格",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_table jodit-ui-group__table"
+    },
+    {
+      "text": "",
+      "aria": "儲存格填充",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_brushCell jodit-ui-group__brushCell"
+    },
+    {
+      "text": "",
+      "aria": "圖片",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_image jodit-ui-group__image"
+    },
+    {
+      "text": "",
+      "aria": "從相簿插入圖片",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_insertFromAlbum jodit-ui-group__insertFromAlbum"
+    },
+    {
+      "text": "",
+      "aria": "插入 youtube/vimeo 影片",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_video jodit-ui-group__video"
+    },
+    {
+      "text": "",
+      "aria": "插入連結",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_link jodit-ui-group__link"
+    },
+    {
+      "text": "",
+      "aria": "取消連結",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_unlink jodit-ui-group__unlink"
+    },
+    {
+      "text": "",
+      "aria": "分割線",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_hr jodit-ui-group__hr"
+    },
+    {
+      "text": "",
+      "aria": "尋找",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_find jodit-toolbar-button_with-trigger_true jodit-ui-group__find"
+    },
+    {
+      "text": "",
+      "aria": "清除樣式",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_eraser jodit-ui-group__eraser"
+    },
+    {
+      "text": "",
+      "aria": "檢視原始碼",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_source jodit-ui-group__source"
+    },
+    {
+      "text": "",
+      "aria": "復原",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_undo jodit-ui-group__undo"
+    },
+    {
+      "text": "",
+      "aria": "取消復原",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_size_middle jodit-toolbar-button_variant_initial jodit-toolbar-button_redo jodit-ui-group__redo"
+    },
+    {
+      "text": "",
+      "aria": "全選",
+      "title": null,
+      "class": "jodit-toolbar-button jodit-toolbar-button_variant_initial jodit-toolbar-button_selectall jodit-toolbar-button_size_tiny"
+    },
+    {
+      "text": "文章標題",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "文章發表時間\n設定為現在時間",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10 flex items-center justify-between"
+    },
+    {
+      "text": "設定為現在時間",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive text-primary underline-offset-4 hover:underline rounded-md gap-1.5 has-[>svg]:px-2.5 h-fit cursor-pointer p-0"
+    },
+    {
+      "text": "文章個人分類",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "請選擇",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 py-2 has-[>svg]:px-3 border-input bg-background hover:bg-background w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]"
+    },
+    {
+      "text": "文章全站分類 (主要)",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "戀愛情事",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 py-2 has-[>svg]:px-3 border-input bg-background hover:bg-background w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]"
+    },
+    {
+      "text": "文章全站分類 (次要)",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "戀愛情事",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 py-2 has-[>svg]:px-3 border-input bg-background hover:bg-background w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]"
+    },
+    {
+      "text": "文章標籤",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "",
+      "aria": "remove OpenClaw測試",
+      "title": null,
+      "class": "absolute -inset-y-px -end-px flex size-7 items-center justify-center rounded-e-md text-muted-foreground/80 hover:text-foreground transition-[color,box-shadow] outline-none focus-visible:border-primary/50 focus-visible:ring-primary/10 focus-visible:ring-[3px]"
+    },
+    {
+      "text": "文章閱讀權限",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "私密",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 py-2 has-[>svg]:px-3 bg-background hover:bg-background border-input w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]"
+    },
+    {
+      "text": "密碼提示",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "密碼",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "好友",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "請選擇",
+      "aria": null,
+      "title": null,
+      "class": "font-medium disabled:pointer-events-none shrink-0 hover:bg-accent hover:text-accent-foreground dark:border-input has-[>svg]:px-3 border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='text-'])]:text-muted-foreground flex h-auto min-h-9 items-center justify-between gap-2 overflow-hidden rounded-md border px-3 py-1.5 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 bg-background w-full"
+    },
+    {
+      "text": "好友群組",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "請選擇",
+      "aria": null,
+      "title": null,
+      "class": "font-medium disabled:pointer-events-none shrink-0 hover:bg-accent hover:text-accent-foreground dark:border-input has-[>svg]:px-3 border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='text-'])]:text-muted-foreground flex h-auto min-h-9 items-center justify-between gap-2 overflow-hidden rounded-md border px-3 py-1.5 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 bg-background w-full"
+    },
+    {
+      "text": "文章留言權限",
+      "aria": null,
+      "title": null,
+      "class": "text-foreground text-sm font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10"
+    },
+    {
+      "text": "不可留言，舊留言隱藏",
+      "aria": null,
+      "title": null,
+      "class": "inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 py-2 has-[>svg]:px-3 bg-background hover:bg-background border-input w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]"
+    }
+  ],
+  "fileInputs": [],
+  "dialogs": [],
+  "frames": [
+    {
+      "name": "",
+      "url": "https://panel.pixnet.tw/posts/882023561366150926"
+    }
+  ]
+}

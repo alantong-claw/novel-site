@@ -218,4 +218,5 @@
    - 回覆本身就是交付物，必須像對待程式輸出一樣要求 correctness。
 
 ## 後續可再補強的方向
-- 未來如果要再進一步制度化，可把「排程完成查核 checklist」整理成固定模板，讓我在回答這類問題時自動照表核對。
+- 已將「排程完成查核 checklist」抽成固定模板：`research/scheduled-task-verification-checklist.md`，之後遇到日期/排程/完成狀態查核時，應直接依此 checklist 核對。
+- 對外正式版本報告已整理為：`research/2026-04-06-formal-external-correctness-incident-report.md`。

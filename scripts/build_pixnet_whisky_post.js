@@ -17,6 +17,11 @@ function parseCsvLine(s) {
 
 function clean(v) { return (v || '').trim(); }
 function keep(v) { v = clean(v); return v && v.toUpperCase() !== 'NA'; }
+function formatYear(v) {
+  v = clean(v);
+  if (!v || v.toUpperCase() === 'NA') return '';
+  return `${v} Yr`;
+}
 
 const csvPath = process.argv[2] || '/mnt/g/TMP/whisky_photo/Whisky365_NoteAll.csv';
 const id = process.argv[3];
@@ -34,7 +39,7 @@ if (!row) {
 }
 
 const region = clean(row[6]);
-const parts = [row[1], row[2], row[7]].filter(keep).map(clean);
+const parts = [row[1], row[2], formatYear(row[7])].filter(keep).map(clean);
 const title = `[Whisky][${region}] ${parts.join(' / ')}`.trim();
 const tags = [];
 for (const part of region.split('/').map(s => s.trim()).filter(keep)) tags.push(part);

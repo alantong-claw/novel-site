@@ -15,8 +15,11 @@
 - `/mnt/g/TMP/whisky_photo/Whisky365_NoteAll.csv`
 
 ### 標題規則
-- `[Whisky][Column7] Column2 / Column3 / Column8`
-- 空白或 `NA` 省略
+- `[Whisky][Column7] Column2 / Column3 / Column8 Yr`
+- `Column8` 空白或 `NA` 省略
+- `7 -> 7 Yr`
+- `*7 -> *7 Yr`
+- 保留 `Column8` 原值，不做正規化，只補 ` Yr`
 
 ### 目標欄位
 - 個人分類：`Whisky`

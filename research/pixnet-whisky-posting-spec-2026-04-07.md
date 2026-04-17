@@ -7,14 +7,17 @@
 ## 標題規則
 格式：
 
-`[Whisky][Column7] Column2 / Column3 / Column8`
+`[Whisky][Column7] Column2 / Column3 / Column8 Yr`
 
 規則：
 - `Column7` 取 row[6]
 - `Column2` 取 row[1]
 - `Column3` 取 row[2]
 - `Column8` 取 row[7]
-- 若欄位空白或 `NA`，就省略，不硬塞 `/`
+- 若 `Column8` 為空白或 `NA`，就省略年份欄，不硬塞 `/`
+- 若 `Column8` 為純數字，照樣發成 `Column8 Yr`，例如 `7 -> 7 Yr`
+- 若 `Column8` 為 `*數字`，也照樣發成 `Column8 Yr`，例如 `*7 -> *7 Yr`
+- 不對 `Column8` 做數值正規化或語意改寫，保留原值後只在尾端補 ` Yr`
 
 ## 欄位規則
 - 個人分類：`Whisky`

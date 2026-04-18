@@ -23,11 +23,26 @@
   - 可見 `input[name="password"]`
   - 可見 `button[type="submit"]`
 
-### 2. 登入後會到 dashboard
-- URL: `https://account.pixnet.tw/dashboard`
-- 頁面關鍵文字：
-  - `總覽`
-  - `前往部落格後台`
+**實務補強：登入不要只試一次。**
+2026-04-18 的 018 / 019 實測顯示，cleanup 後 profile 會是乾淨的，重新登入有時第一次不會成功，仍可能停在 login 頁。
+因此標準流程應允許：
+- 若偵測尚未進入 `/posts`，自動重新登入再試一次
+- 不要把「已填帳密並按 submit」當成登入成功證據
+
+### 2. 登入後驗證可用狀態
+- 優先驗證最終可用目標，而不只看 dashboard
+- 建議流程：
+  1. 送出登入
+  2. 直接前往 `https://panel.pixnet.tw/posts`
+  3. 以 `/posts` 頁面成功作為真正登入完成證據
+- `/posts` 成功條件：
+  - URL: `https://panel.pixnet.tw/posts`
+  - 頁面有：
+    - `我的文章`
+    - `寫文章`
+    - `文章狀態`
+
+> 注意：不要只驗證 dashboard。真正與發文流程耦合的可用狀態，是能成功進入 `/posts`。
 
 ### 3. 可直接前往文章列表
 - 直接 `goto https://panel.pixnet.tw/posts`
@@ -70,6 +85,16 @@
 - 到 `/posts/create` 就算成功
 - `開始寫文章` 會自動被帶過去
 - `/posts/create` 可直接視為 editor ready
+
+**實務補強：`開始寫文章` 不要只點一次。**
+2026-04-18 的 018 / 019 實測顯示，即使已正確到達 `/posts/create`，第一次點 `開始寫文章` 仍可能沒有生效，流程會繼續停在 create 頁。
+因此標準規則應為：
+- 先確認按鈕可見
+- scroll 到可點位置
+- 先正常 click
+- 若仍未進 editor，可 force click
+- 若仍失敗，可 reload `/posts/create` 後再試
+- 應容許有限次重試，而不是一次失敗就判定整條流程無效
 
 ---
 

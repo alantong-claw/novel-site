@@ -48,14 +48,28 @@
     - `建立文章`
     - `開始寫文章`
 
+**重要：不要把 `/posts/create` 當成已進入 editor。**
+這一頁只是中間過渡頁，昨晚與 2026-04-18 早上都曾真實卡在這裡。
+若只點了 `寫文章`，但沒有再明確點一次 `開始寫文章`，流程會停在 create 頁，看起來像已經進入寫作流程，實際上還沒到真正 editor。
+
 ### 5. 開啟真正 editor
-- 在 `/posts/create` 點 `開始寫文章`
+- 在 `/posts/create` **明確點 `開始寫文章`**
 - 成功條件：
   - URL 符合：`https://panel.pixnet.tw/posts/<動態數字>`
   - 頁面有：
     - `文章個人分類`
     - `文章閱讀權限`
     - `POWERED BY JODIT`
+
+**正式三段式入口，不可省略：**
+1. `https://panel.pixnet.tw/posts`
+2. 點 `寫文章`，到 `https://panel.pixnet.tw/posts/create`
+3. 點 `開始寫文章`，才進到 `https://panel.pixnet.tw/posts/<動態數字>`
+
+不要假設：
+- 到 `/posts/create` 就算成功
+- `開始寫文章` 會自動被帶過去
+- `/posts/create` 可直接視為 editor ready
 
 ---
 

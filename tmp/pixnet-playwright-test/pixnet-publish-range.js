@@ -49,23 +49,41 @@ async function openFreshEditor(page) {
     await sleep(2500);
   }
   console.log('STEP openFreshEditor:after-login');
-  await page.goto('https://panel.pixnet.tw/posts/create', { waitUntil: 'domcontentloaded' });
-  await sleep(2000);
+  await page.goto('https://panel.pixnet.tw/posts', { waitUntil: 'domcontentloaded' });
+  await sleep(1000);
+  const postsReady = await waitForCondition(async () => {
+    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 2000);
+    return {
+      ok: page.url().startsWith('https://panel.pixnet.tw/posts') && body.includes('我的文章') && body.includes('寫文章'),
+      url: page.url(),
+      body,
+    };
+  }, { tries: 20, delayMs: 1000 });
+  if (!postsReady.ok) throw new Error(`did-not-reach-posts:${postsReady.url || page.url()}`);
+
+  await page.getByText('寫文章', { exact: true }).first().click();
+  await sleep(1000);
+  const createReady = await waitForCondition(async () => {
+    const start = page.getByRole('button', { name: /開始寫文章/ }).first();
+    return {
+      ok: page.url().startsWith('https://panel.pixnet.tw/posts/create') && await start.isVisible().catch(() => false),
+      url: page.url(),
+    };
+  }, { tries: 20, delayMs: 1000 });
+  if (!createReady.ok) throw new Error(`did-not-reach-create:${createReady.url || page.url()}`);
+
   const start = page.getByRole('button', { name: /開始寫文章/ }).first();
-  await start.waitFor({ state: 'visible', timeout: 15000 });
   await start.scrollIntoViewIfNeeded();
   await sleep(300);
   await start.click({ timeout: 10000 });
-  await sleep(5000);
+  await sleep(1500);
   const reached = await waitForCondition(async () => {
-    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 6000);
-    const url = page.url();
+    const label = page.locator('label').filter({ hasText: '文章個人分類' }).first();
     return {
-      ok: /^https:\/\/panel\.pixnet\.tw\/posts\/\d+$/.test(url) && (body.includes('文章標題') || body.includes('寫文章')) && body.includes('文章個人分類'),
-      url,
-      body,
+      ok: /^https:\/\/panel\.pixnet\.tw\/posts\/\d+$/.test(page.url()) && await label.isVisible().catch(() => false),
+      url: page.url(),
     };
-  }, { tries: 60, delayMs: 1000 });
+  }, { tries: 25, delayMs: 1000 });
   if (!reached.ok) throw new Error(`did-not-reach-editor:${reached.url || page.url()}`);
   console.log('STEP openFreshEditor:editor-ready');
 }

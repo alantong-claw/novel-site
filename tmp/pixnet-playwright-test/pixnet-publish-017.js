@@ -3,23 +3,14 @@ const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 
-const items = [
-  {
-    num: '107',
-    title: '[Whisky][Japan/Yamagata] YUZA / firstEdition',
-    tags: ['Japan', 'Yamagata', 'YUZA', 'firstEdition'],
-    image: '/mnt/g/TMP/whisky_photo/107_YUZA_firstEdition_claw.jpg'
-  },
-  {
-    num: '108',
-    title: '[Whisky][Japan/Yamanashi] 白州 / 12 Yr',
-    tags: ['Japan', 'Yamanashi', '白州', '12'],
-    image: '/mnt/g/TMP/whisky_photo/108_白州12_Yr_claw.jpg'
-  }
-];
+const item = {
+  num: '017',
+  title: '[Whisky][Scotland/SPEYSIDE] GLENTAUCHERS / 1st Fill Bourbon Barrel / 4 Yr',
+  tags: ['Scotland', 'SPEYSIDE', 'GLENTAUCHERS', '1st Fill Bourbon Barrel', '4'],
+  image: '/mnt/g/TMP/whisky_photo/017_GLENTAUCHERS_1stBourbon_tbl_claw.jpg'
+};
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
 async function waitForCondition(checkFn, { tries = 20, delayMs = 1000 } = {}) {
   let last = null;
   for (let i = 0; i < tries; i++) {
@@ -30,16 +21,20 @@ async function waitForCondition(checkFn, { tries = 20, delayMs = 1000 } = {}) {
   return last || { ok: false };
 }
 
-async function openFreshEditor(page) {
-  await page.goto('https://account.pixnet.tw/login', { waitUntil: 'domcontentloaded' });
-  await sleep(1000);
-  await page.locator('input[name="username"]').fill('alantong');
-  await page.locator('input[name="password"]').fill('xxxx3721?!');
-  await page.locator('button[type="submit"]').first().click();
-  await sleep(2000);
-
+async function ensureLoggedIn(page) {
   await page.goto('https://panel.pixnet.tw/posts', { waitUntil: 'domcontentloaded' });
-  await sleep(1500);
+  await sleep(2000);
+  const url = page.url();
+  const body = await page.locator('body').innerText().catch(() => '');
+  if (url.includes('account.pixnet.tw/login') || body.includes('會員登入') || body.includes('username')) {
+    throw new Error('pixnet-login-required');
+  }
+}
+
+async function openFreshEditor(page) {
+  console.log('STEP openFreshEditor:start');
+  await ensureLoggedIn(page);
+
   const postsReady = await waitForCondition(async () => {
     const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 2000);
     return {
@@ -62,15 +57,19 @@ async function openFreshEditor(page) {
   if (!createReady.ok) throw new Error(`did-not-reach-create:${createReady.url || page.url()}`);
 
   const start = page.getByRole('button', { name: /開始寫文章/ }).first();
-  await start.click();
+  await start.scrollIntoViewIfNeeded();
+  await sleep(300);
+  await start.click({ timeout: 10000 });
+  await sleep(1500);
   const reached = await waitForCondition(async () => {
     const label = page.locator('label').filter({ hasText: '文章個人分類' }).first();
     return {
       ok: /^https:\/\/panel\.pixnet\.tw\/posts\/\d+$/.test(page.url()) && await label.isVisible().catch(() => false),
       url: page.url(),
     };
-  }, { tries: 35, delayMs: 1000 });
+  }, { tries: 25, delayMs: 1000 });
   if (!reached.ok) throw new Error(`did-not-reach-editor:${reached.url || page.url()}`);
+  console.log('STEP openFreshEditor:editor-ready');
 }
 
 async function setDropdown(page, labelText, value, searchable) {
@@ -129,7 +128,7 @@ async function uploadImage(page, imagePath) {
   const uploaded = await waitForCondition(async () => {
     const html = await page.locator('body').innerHTML().catch(() => '');
     return { ok: html.includes('pimg.1px.tw') };
-  }, { tries: 20, delayMs: 1000 });
+  }, { tries: 25, delayMs: 1000 });
   if (!uploaded.ok) throw new Error('image-upload-not-confirmed');
 }
 
@@ -137,17 +136,20 @@ async function publishItem(page, item) {
   await openFreshEditor(page);
   const titleInput = page.locator('textarea[name="title"], #文章標題').first();
   await titleInput.waitFor({ state: 'visible', timeout: 15000 });
+  console.log('STEP fill-title');
   await titleInput.fill(item.title);
   await sleep(700);
   const titleReadback = await titleInput.inputValue();
   if (titleReadback !== item.title) throw new Error(`title-readback-mismatch:${titleReadback}`);
 
+  console.log('STEP set-categories');
   await setDropdown(page, '文章個人分類', 'Whisky', true);
   await setDropdown(page, '文章全站分類 (主要)', '美味食記', true);
   await setDropdown(page, '文章全站分類 (次要)', '生活綜合', true);
   await setDropdown(page, '文章閱讀權限', '公開', false);
   await setDropdown(page, '文章留言權限', '可留言，留言公開', false);
 
+  console.log('STEP set-tags');
   const tagInput = page.locator('input[placeholder="+ 新增標籤"]').first();
   for (const tag of item.tags) {
     await tagInput.click();
@@ -158,12 +160,15 @@ async function publishItem(page, item) {
     await sleep(600);
   }
 
+  console.log('STEP upload-image');
   await uploadImage(page, item.image);
+  console.log('STEP upload-image:done');
 
+  console.log('STEP click-publish');
   await page.getByText('發布', { exact: true }).first().click();
   await sleep(1000);
   const published = await waitForCondition(async () => {
-    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 8000);
+    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 10000);
     const lines = body.split('\n');
     const titleIndex = lines.findIndex(x => x.trim() === item.title);
     const postUrl = titleIndex >= 1 ? lines[titleIndex - 1] : '';
@@ -174,6 +179,7 @@ async function publishItem(page, item) {
     };
   }, { tries: 25, delayMs: 1000 });
   if (!published.ok) throw new Error(`publish-not-verified:${item.num}`);
+  console.log('STEP publish:verified');
   return { num: item.num, title: item.title, postUrl: published.postUrl };
 }
 
@@ -202,19 +208,15 @@ function runCleanupAfterSuccess(success) {
     args: ['--no-sandbox'],
     viewport: { width: 1400, height: 960 },
   });
+  let published = false;
   try {
     const page = context.pages()[0] || await context.newPage();
-    const results = [];
-    for (const item of items) {
-      const result = await publishItem(page, item);
-      results.push(result);
-      console.log(JSON.stringify({ stage: 'published', result }, null, 2));
-      await page.goto('about:blank');
-      await sleep(800);
-    }
-    console.log(JSON.stringify({ success: true, results }, null, 2));
+    const result = await publishItem(page, item);
+    published = true;
+    console.log(JSON.stringify({ success: true, result }, null, 2));
   } finally {
     await sleep(3000);
     await context.close();
+    runCleanupAfterSuccess(published);
   }
 })();

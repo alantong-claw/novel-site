@@ -20,32 +20,66 @@ async function waitForCondition(checkFn, { tries = 15, delayMs = 1000 } = {}) {
 async function setupEditor(page) {
   await page.goto('https://account.pixnet.tw/login', { waitUntil: 'domcontentloaded' });
   await sleep(1000);
-  await page.locator('input[name="username"]').fill('alantong');
-  await sleep(500);
-  await page.locator('input[name="password"]').fill('xxxx3721?!');
-  await sleep(500);
-  await page.locator('button[type="submit"]').first().click();
-  await sleep(1000);
-  if (!(await waitForCondition(async () => ({ ok: page.url().includes('/dashboard') }), { tries: 15, delayMs: 1000 })).ok) throw new Error('did-not-reach-dashboard');
+  const username = page.locator('input[name="username"]');
+  if (await username.isVisible().catch(() => false)) {
+    await username.fill('alantong');
+    await sleep(800);
+    await page.locator('input[name="password"]').fill('xxxx3721?!');
+    await sleep(800);
+    await page.locator('button[type="submit"]').first().click();
+    await sleep(2500);
+  }
+
   await page.goto('https://panel.pixnet.tw/posts', { waitUntil: 'domcontentloaded' });
   await sleep(1000);
-  if (!(await waitForCondition(async () => {
-    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 1500);
-    return { ok: page.url().startsWith('https://panel.pixnet.tw/posts') && body.includes('我的文章') && body.includes('寫文章') };
-  }, { tries: 15, delayMs: 1000 })).ok) throw new Error('did-not-reach-posts');
+  const postsReady = await waitForCondition(async () => {
+    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 2000);
+    return {
+      ok: page.url().startsWith('https://panel.pixnet.tw/posts') && body.includes('我的文章') && body.includes('寫文章'),
+      url: page.url(),
+      body,
+    };
+  }, { tries: 20, delayMs: 1000, label: 'posts' });
+  if (!postsReady.ok) throw new Error(`did-not-reach-posts:${postsReady.url || page.url()}`);
+
   await page.getByText('寫文章', { exact: true }).first().click();
   await sleep(1000);
-  if (!(await waitForCondition(async () => {
+  const createReady = await waitForCondition(async () => {
     const start = page.getByRole('button', { name: /開始寫文章/ }).first();
-    return { ok: page.url().startsWith('https://panel.pixnet.tw/posts/create') && await start.isVisible().catch(() => false) };
-  }, { tries: 20, delayMs: 1000 })).ok) throw new Error('did-not-reach-create');
-  await page.getByRole('button', { name: /開始寫文章/ }).first().click();
-  await sleep(1000);
-  if (!(await waitForCondition(async () => {
-    const label = page.locator('label').filter({ hasText: '文章個人分類' }).first();
-    return { ok: /^https:\/\/panel\.pixnet\.tw\/posts\/\d+$/.test(page.url()) && await label.isVisible().catch(() => false) };
-  }, { tries: 25, delayMs: 1000 })).ok) throw new Error('did-not-reach-editor');
+    return {
+      ok: page.url().startsWith('https://panel.pixnet.tw/posts/create') && await start.isVisible().catch(() => false),
+      url: page.url(),
+    };
+  }, { tries: 20, delayMs: 1000, label: 'create' });
+  if (!createReady.ok) throw new Error(`did-not-reach-create:${createReady.url || page.url()}`);
+
+  const start = page.getByRole('button', { name: /開始寫文章/ }).first();
+  let reached = { ok: false, url: page.url() };
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    console.log(`STEP setupEditor:start-button attempt ${attempt}`);
+    await start.waitFor({ state: 'visible', timeout: 15000 });
+    await start.scrollIntoViewIfNeeded();
+    await sleep(400);
+    try {
+      await start.click({ timeout: 10000 });
+    } catch {
+      await start.click({ force: true, timeout: 10000 });
+    }
+    await sleep(1500);
+    reached = await waitForCondition(async () => {
+      const label = page.locator('label').filter({ hasText: '文章個人分類' }).first();
+      return {
+        ok: /^https:\/\/panel\.pixnet\.tw\/posts\/\d+$/.test(page.url()) && await label.isVisible().catch(() => false),
+        url: page.url(),
+      };
+    }, { tries: 8, delayMs: 1000, label: 'editor' });
+    if (reached.ok) break;
+    await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+    await sleep(1000);
+  }
+  if (!reached.ok) throw new Error(`did-not-reach-editor:${reached.url || page.url()}`);
 }
+
 
 async function setDropdown(page, labelText, value, searchable) {
   const label = page.locator('label').filter({ hasText: labelText }).first();

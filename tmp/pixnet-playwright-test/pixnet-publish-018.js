@@ -3,11 +3,15 @@ const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+const item = {
+  num: '018',
+  title: '[Whisky][Scotland/HIGHLAND] TULLIBARDINE / Barrel:180-200L / 7 Yr',
+  tags: ['Scotland', 'HIGHLAND', 'TULLIBARDINE', 'Barrel:180-200L', '7'],
+  image: '/mnt/g/TMP/whisky_photo/018_TULLIBARDINE_7yr_tbl_claw.jpg'
+};
 
-async function waitForCondition(checkFn, { tries = 15, delayMs = 1000 } = {}) {
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+async function waitForCondition(checkFn, { tries = 20, delayMs = 1000 } = {}) {
   let last = null;
   for (let i = 0; i < tries; i++) {
     last = await checkFn();
@@ -17,7 +21,7 @@ async function waitForCondition(checkFn, { tries = 15, delayMs = 1000 } = {}) {
   return last || { ok: false };
 }
 
-async function setupEditor(page) {
+async function ensureLoggedIn(page) {
   await page.goto('https://account.pixnet.tw/login', { waitUntil: 'domcontentloaded' });
   await sleep(1000);
   const username = page.locator('input[name="username"]');
@@ -29,9 +33,19 @@ async function setupEditor(page) {
     await page.locator('button[type="submit"]').first().click();
     await sleep(2500);
   }
-
   await page.goto('https://panel.pixnet.tw/posts', { waitUntil: 'domcontentloaded' });
-  await sleep(1000);
+  await sleep(1500);
+  const url = page.url();
+  const body = await page.locator('body').innerText().catch(() => '');
+  if (url.includes('account.pixnet.tw/login') || body.includes('會員登入') || body.includes('username')) {
+    throw new Error('pixnet-login-required');
+  }
+}
+
+async function openFreshEditor(page) {
+  console.log('STEP openFreshEditor:start');
+  await ensureLoggedIn(page);
+
   const postsReady = await waitForCondition(async () => {
     const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 2000);
     return {
@@ -39,7 +53,7 @@ async function setupEditor(page) {
       url: page.url(),
       body,
     };
-  }, { tries: 20, delayMs: 1000, label: 'posts' });
+  }, { tries: 20, delayMs: 1000 });
   if (!postsReady.ok) throw new Error(`did-not-reach-posts:${postsReady.url || page.url()}`);
 
   await page.getByText('寫文章', { exact: true }).first().click();
@@ -50,13 +64,13 @@ async function setupEditor(page) {
       ok: page.url().startsWith('https://panel.pixnet.tw/posts/create') && await start.isVisible().catch(() => false),
       url: page.url(),
     };
-  }, { tries: 20, delayMs: 1000, label: 'create' });
+  }, { tries: 20, delayMs: 1000 });
   if (!createReady.ok) throw new Error(`did-not-reach-create:${createReady.url || page.url()}`);
 
   const start = page.getByRole('button', { name: /開始寫文章/ }).first();
   let reached = { ok: false, url: page.url() };
   for (let attempt = 1; attempt <= 3; attempt++) {
-    console.log(`STEP setupEditor:start-button attempt ${attempt}`);
+    console.log(`STEP openFreshEditor:start-button attempt ${attempt}`);
     await start.waitFor({ state: 'visible', timeout: 15000 });
     await start.scrollIntoViewIfNeeded();
     await sleep(400);
@@ -72,19 +86,21 @@ async function setupEditor(page) {
         ok: /^https:\/\/panel\.pixnet\.tw\/posts\/\d+$/.test(page.url()) && await label.isVisible().catch(() => false),
         url: page.url(),
       };
-    }, { tries: 8, delayMs: 1000, label: 'editor' });
+    }, { tries: 8, delayMs: 1000 });
     if (reached.ok) break;
     await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
     await sleep(1000);
   }
   if (!reached.ok) throw new Error(`did-not-reach-editor:${reached.url || page.url()}`);
+  console.log('STEP openFreshEditor:editor-ready');
 }
-
 
 async function setDropdown(page, labelText, value, searchable) {
   const label = page.locator('label').filter({ hasText: labelText }).first();
   const fieldGroup = label.locator('xpath=ancestor::*[@role="group"][1]');
   const combo = fieldGroup.getByRole('combobox').first();
+  await combo.scrollIntoViewIfNeeded();
+  await sleep(300);
   await combo.click();
   await sleep(600);
   if (searchable) {
@@ -99,47 +115,23 @@ async function setDropdown(page, labelText, value, searchable) {
   await sleep(800);
 }
 
-async function publishOne(page, item) {
-  await setupEditor(page);
-
-  const titleInput = page.locator('textarea[name="title"], #文章標題').first();
-  await titleInput.fill(item.title);
-  await sleep(800);
-
-  await setDropdown(page, '文章個人分類', 'Whisky', true);
-  await setDropdown(page, '文章全站分類 (主要)', '美味食記', true);
-  await setDropdown(page, '文章全站分類 (次要)', '生活綜合', true);
-  await setDropdown(page, '文章閱讀權限', '公開', false);
-  await setDropdown(page, '文章留言權限', '可留言，留言公開', false);
-
-  const tagInput = page.locator('input[placeholder="+ 新增標籤"]').first();
-  for (const tag of item.tags) {
-    await tagInput.click();
-    await sleep(200);
-    await tagInput.fill(tag);
-    await sleep(200);
-    await page.keyboard.press('Enter');
-    await sleep(500);
-  }
-
-  const imageButtonCandidates = [
+async function uploadImage(page, imagePath) {
+  const candidates = [
     page.getByLabel('圖片').first(),
     page.getByTitle('圖片').first(),
     page.locator('button[aria-label="圖片"]').first(),
     page.locator('span[aria-label="圖片"]').first(),
     page.locator('.jodit-toolbar-button').filter({ hasText: '圖片' }).first(),
   ];
-  for (const candidate of imageButtonCandidates) {
-    const visible = await candidate.isVisible().catch(() => false);
-    if (!visible) continue;
+  for (const candidate of candidates) {
+    if (!(await candidate.isVisible().catch(() => false))) continue;
     try {
       await candidate.click({ timeout: 5000 });
       break;
     } catch {}
   }
   await sleep(1200);
-
-  const buffer = fs.readFileSync(item.image);
+  const buffer = fs.readFileSync(imagePath);
   const base64 = buffer.toString('base64');
   await page.evaluate(async ({ selector, fileName, base64 }) => {
     const target = document.querySelector(selector);
@@ -153,26 +145,65 @@ async function publishOne(page, item) {
     target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
   }, {
     selector: '.jodit-drag-and-drop__file-box',
-    fileName: path.basename(item.image),
+    fileName: path.basename(imagePath),
     base64,
   });
-  await sleep(5000);
+  const uploaded = await waitForCondition(async () => {
+    const html = await page.locator('body').innerHTML().catch(() => '');
+    return { ok: html.includes('pimg.1px.tw') };
+  }, { tries: 25, delayMs: 1000 });
+  if (!uploaded.ok) throw new Error('image-upload-not-confirmed');
+}
 
+async function publishItem(page, item) {
+  await openFreshEditor(page);
+  const titleInput = page.locator('textarea[name="title"], #文章標題').first();
+  await titleInput.waitFor({ state: 'visible', timeout: 15000 });
+  console.log('STEP fill-title');
+  await titleInput.fill(item.title);
+  await sleep(700);
+  const titleReadback = await titleInput.inputValue();
+  if (titleReadback !== item.title) throw new Error(`title-readback-mismatch:${titleReadback}`);
+
+  console.log('STEP set-categories');
+  await setDropdown(page, '文章個人分類', 'Whisky', true);
+  await setDropdown(page, '文章全站分類 (主要)', '美味食記', true);
+  await setDropdown(page, '文章全站分類 (次要)', '生活綜合', true);
+  await setDropdown(page, '文章閱讀權限', '公開', false);
+  await setDropdown(page, '文章留言權限', '可留言，留言公開', false);
+
+  console.log('STEP set-tags');
+  const tagInput = page.locator('input[placeholder="+ 新增標籤"]').first();
+  for (const tag of item.tags) {
+    await tagInput.click();
+    await sleep(200);
+    await tagInput.fill(tag);
+    await sleep(200);
+    await page.keyboard.press('Enter');
+    await sleep(600);
+  }
+
+  console.log('STEP upload-image');
+  await uploadImage(page, item.image);
+  console.log('STEP upload-image:done');
+
+  console.log('STEP click-publish');
   await page.getByText('發布', { exact: true }).first().click();
   await sleep(1000);
-
   const published = await waitForCondition(async () => {
-    const url = page.url();
-    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 7000);
-    return { ok: url.startsWith('https://panel.pixnet.tw/posts') && body.includes(item.title), url, body };
+    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 10000);
+    const lines = body.split('\n');
+    const titleIndex = lines.findIndex(x => x.trim() === item.title);
+    const postUrl = titleIndex >= 1 ? lines[titleIndex - 1] : '';
+    return {
+      ok: page.url().startsWith('https://panel.pixnet.tw/posts') && body.includes(item.title),
+      postUrl,
+      body,
+    };
   }, { tries: 25, delayMs: 1000 });
-
-  return {
-    num: item.num,
-    title: item.title,
-    success: published.ok,
-    url: published.url,
-  };
+  if (!published.ok) throw new Error(`publish-not-verified:${item.num}`);
+  console.log('STEP publish:verified');
+  return { num: item.num, title: item.title, postUrl: published.postUrl };
 }
 
 function runCleanupAfterSuccess(success) {
@@ -187,8 +218,6 @@ function runCleanupAfterSuccess(success) {
 }
 
 (async () => {
-  const jsonPath = '/home/alantong/ai-work/tmp/pixnet-playwright-test/pixnet-batch-102-108.json';
-  const items = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   const userDataDir = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'pixnet-user-data');
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless: false,
@@ -202,13 +231,15 @@ function runCleanupAfterSuccess(success) {
     args: ['--no-sandbox'],
     viewport: { width: 1400, height: 960 },
   });
-
-  const page = context.pages()[0] || await context.newPage();
-  const results = [];
-  for (const item of items) {
-    results.push(await publishOne(page, item));
+  let published = false;
+  try {
+    const page = context.pages()[0] || await context.newPage();
+    const result = await publishItem(page, item);
+    published = true;
+    console.log(JSON.stringify({ success: true, result }, null, 2));
+  } finally {
+    await sleep(3000);
+    await context.close();
+    runCleanupAfterSuccess(published);
   }
-  console.log(JSON.stringify({ results }, null, 2));
-  await sleep(5000);
-  await context.close();
 })();

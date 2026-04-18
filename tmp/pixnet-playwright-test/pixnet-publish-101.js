@@ -82,9 +82,14 @@ function runCleanupAfterSuccess(success) {
 }
 
 (async () => {
-  const titleText = '[Whisky][Japan/Hokkaido] Nikka/余市';
-  const tags = ['Japan', 'Hokkaido', 'Nikka/余市'];
-  const imagePath = '/mnt/g/TMP/whisky_photo/110_Nikka_余市.jpg';
+  const titleText = '[Whisky][Taiwan/Nantou] Omar / 波本花香（Bourbon)';
+  const tags = ['Taiwan', 'Nantou', 'Omar', '波本花香（Bourbon)'];
+  const imageDir = '/mnt/g/TMP/whisky_photo';
+  const matches = fs.readdirSync(imageDir)
+    .filter(name => name.startsWith('101_'))
+    .map(name => path.join(imageDir, name));
+  if (matches.length === 0) throw new Error('no-image-found-for-101');
+  const imagePath = matches[0];
   const userDataDir = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'pixnet-user-data');
 
   const context = await chromium.launchPersistentContext(userDataDir, {
@@ -166,7 +171,7 @@ function runCleanupAfterSuccess(success) {
 
   const published = await waitForCondition(async () => {
     const url = page.url();
-    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);
+    const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 5000);
     return {
       ok: url.startsWith('https://panel.pixnet.tw/posts') && body.includes(titleText),
       url,
@@ -185,16 +190,4 @@ function runCleanupAfterSuccess(success) {
 
   await sleep(5000);
   await context.close();
-
-  runCleanupAfterSuccess(!!published.ok);
-
-  if (published.ok) {
-    try {
-      const cleanupScript = '/home/alantong/ai-work/scripts/cleanup_pixnet_profile.sh';
-      const cleanupOutput = execFileSync(cleanupScript, ['1'], { encoding: 'utf8' });
-      console.error(`[pixnet cleanup] ${cleanupOutput.trim()}`);
-    } catch (error) {
-      console.error('[pixnet cleanup] failed:', error?.message || error);
-    }
-  }
 })();

@@ -1,2 +1,21 @@
 .secrets/
 venv/
+
+# Local Python environments
+.venv/
+.venv-*/
+
+# Runtime temp files and logs
+*.log
+*.pid
+
+# OS/editor cruft
+.DS_Store
+__pycache__/
+*.pyc
+
+# Browser automation profiles and caches
+tmp/pixnet-playwright-test/pixnet-user-data/
+
+# Generated scratch/output areas
+slides/generated/

@@ -8,5 +8,6 @@
 
 ### Pending Task Check (On Boot / Heartbeat)
 - Check `memory/novel-progress.json` for current Sunday. If missing, trigger script.
+- If `memory/novel-progress.json` says `blocked` or `needs_review`, alert Alan instead of claiming the Sunday chapter job ran.
 - Check `memory/backup-pending.json`. If exists, send mount reminder.
 - Check whether yesterday's growth journal entry exists in `novel_site` as `clawchan-YYYY-MM-DD.html`. If missing and yesterday had meaningful activity, proactively backfill it or alert Alan.

@@ -2,51 +2,31 @@
 set -euo pipefail
 
 ROOT="/home/alantong/ai-work"
+STATE_FILE="$ROOT/memory/novel-progress.json"
 NOVEL_DIR="$ROOT/novel_site"
-STATE_DIR="$ROOT/memory"
-STATE_FILE="$STATE_DIR/novel-progress.json"
 TODAY="$(TZ=Asia/Taipei date +%F)"
-DOW="$(TZ=Asia/Taipei date +%u)"   # 1=Mon ... 7=Sun
-HOUR="$(TZ=Asia/Taipei date +%H)"
+DOW="$(TZ=Asia/Taipei date +%u)"
 
-mkdir -p "$STATE_DIR"
-
-# Only operate on Sunday from 08:00 onwards.
 if [[ "$DOW" != "7" ]]; then
   echo "Not Sunday; skipping."
   exit 0
 fi
-if (( 10#$HOUR < 8 )); then
-  echo "Before 08:00; skipping."
-  exit 0
-fi
 
-# If chapter already written today, skip.
 if [[ -f "$STATE_FILE" ]] && grep -q "$TODAY" "$STATE_FILE"; then
-  echo "Weekly chapter already handled today; skipping."
+  echo "Already handled today."
   exit 0
 fi
 
-SESSION_KEY="agent:main:cron:ebebf992-4486-49cb-aa07-4f32de6891cf"
-SESSION_ID="$(openclaw status --json | node -e '
-let data="";
-process.stdin.on("data", d => data += d);
-process.stdin.on("end", () => {
-  try {
-    const key = "agent:main:cron:ebebf992-4486-49cb-aa07-4f32de6891cf";
-    const j = JSON.parse(data);
-    const entry = (j.sessions && j.sessions.recent || []).find(e => e.key === key);
-    if (entry && entry.sessionId) process.stdout.write(entry.sessionId);
-  } catch (e) {}
-});
-')"
-if [[ -z "$SESSION_ID" ]]; then
-  echo "Could not resolve session id for $SESSION_KEY; aborting."
-  exit 1
+mkdir -p "$(dirname "$STATE_FILE")"
+
+LATEST_CHAPTER="$(find "$NOVEL_DIR" -maxdepth 1 -type f -name 'chapter-*.html' | sort | tail -n 1 || true)"
+
+if [[ -z "$LATEST_CHAPTER" ]]; then
+  printf '{"last_checked":"%s","status":"blocked","reason":"no_chapter_files","detail":"No chapter-*.html exists in novel_site, so weekly next-chapter automation cannot determine the next chapter."}\n' "$TODAY" > "$STATE_FILE"
+  echo "Blocked: no existing chapter-*.html files found in $NOVEL_DIR"
+  exit 2
 fi
 
-MESSAGE="Today is Sunday after 08:00 Asia/Taipei. Check whether a novel chapter for the current Sunday-Saturday week already exists in /home/alantong/ai-work/novel_site. If missing, draft the next chapter, save it in novel_site, update index.html, then commit and push inside the novel_site git repo. If a chapter for this week already exists, do nothing except report that it is already done. After successful handling, write today's date ($TODAY) into /home/alantong/ai-work/memory/novel-progress.json as the last_run date."
+printf '{"last_checked":"%s","status":"needs_review","latest_chapter":"%s","detail":"Weekly chapter automation requires manual review/approval before drafting and publishing."}\n' "$TODAY" "$(basename "$LATEST_CHAPTER")" > "$STATE_FILE"
 
-openclaw agent --session-id "$SESSION_ID" --message "$MESSAGE" --json >/tmp/weekly_novel_check.json
-printf '{"last_run":"%s"}\n' "$TODAY" > "$STATE_FILE"
-echo "Handled weekly novel check for $TODAY"
+echo "Needs review: latest chapter is $(basename "$LATEST_CHAPTER"). Weekly automation intentionally stops before drafting/publishing."

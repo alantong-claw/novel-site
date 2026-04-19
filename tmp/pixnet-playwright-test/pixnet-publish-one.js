@@ -57,7 +57,7 @@ function buildSpec(idNum) {
   const region = clean(row[6]);
   const parts = [row[1], row[2], formatYear(row[7])].filter(keep).map(clean);
   const title = `[Whisky][${region}] ${parts.join(' / ')}`.trim();
-  const tags = [];
+  const tags = ['Whisky'];
   for (const part of region.split('/').map(s => s.trim()).filter(keep)) tags.push(part);
   for (const v of [row[1], row[2], row[7]]) if (keep(v)) tags.push(clean(v));
   const matches = fs.readdirSync('/mnt/g/TMP/whisky_photo')

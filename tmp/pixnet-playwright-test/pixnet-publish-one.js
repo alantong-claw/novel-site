@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
+const { uploadImageStrict, waitForCondition } = require('./pixnet-upload-helper');
 
 const rawId = process.argv[2];
 if (!rawId) {
@@ -14,16 +15,12 @@ if (!Number.isInteger(idNum) || idNum <= 0) {
   process.exit(1);
 }
 
+const ROOT = '/home/alantong/ai-work';
+const TASK_DIR = path.join(ROOT, 'memory', 'tasks');
+const TASK_STATE = path.join(TASK_DIR, `pixnet-whisky-${String(idNum).padStart(3, '0')}.json`);
+const MAX_SELF_RECOVERY_ROUNDS = 3;
+
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-async function waitForCondition(checkFn, { tries = 20, delayMs = 1000 } = {}) {
-  let last = null;
-  for (let i = 0; i < tries; i++) {
-    last = await checkFn();
-    if (last && last.ok) return last;
-    await sleep(delayMs);
-  }
-  return last || { ok: false };
-}
 
 function parseCsvLine(s) {
   const out = []; let cur = ''; let q = false;
@@ -45,6 +42,19 @@ function formatYear(v) {
   v = clean(v);
   if (!keep(v)) return '';
   return `${v} Yr`;
+}
+
+function setTaskState(status, fields = {}) {
+  const args = [path.join(ROOT, 'scripts', 'task_state.py'), TASK_STATE, status];
+  for (const [k, v] of Object.entries(fields)) {
+    args.push(`${k}=${String(v)}`);
+  }
+  try {
+    const output = execFileSync('python3', args, { encoding: 'utf8' }).trim();
+    if (output) console.error(`[task_state] ${output}`);
+  } catch (error) {
+    console.error('[task_state] failed:', error?.message || error);
+  }
 }
 
 function buildSpec(idNum) {
@@ -72,6 +82,13 @@ async function setupEditor(page) {
   let postsReady = { ok: false, url: page.url() };
   for (let loginAttempt = 1; loginAttempt <= 2; loginAttempt++) {
     console.log(`STEP setupEditor:login attempt ${loginAttempt}`);
+    setTaskState('self_recovering', {
+      task: `pixnet-whisky-${String(idNum).padStart(3, '0')}`,
+      current_step: 'login_to_posts',
+      last_ok_step: 'spec_built',
+      recovery_round: loginAttempt,
+      note: 'trying login to posts transition'
+    });
     await page.goto('https://account.pixnet.tw/login', { waitUntil: 'domcontentloaded' });
     await sleep(1000);
     const username = page.locator('input[name="username"]');
@@ -94,7 +111,14 @@ async function setupEditor(page) {
         body,
       };
     }, { tries: 20, delayMs: 1000 });
-    if (postsReady.ok) break;
+    if (postsReady.ok) {
+      setTaskState('running', {
+        task: `pixnet-whisky-${String(idNum).padStart(3, '0')}`,
+        current_step: 'posts_ready',
+        last_ok_step: 'login_to_posts'
+      });
+      break;
+    }
   }
   if (!postsReady.ok) throw new Error(`did-not-reach-posts:${postsReady.url || page.url()}`);
 
@@ -108,11 +132,23 @@ async function setupEditor(page) {
     };
   }, { tries: 20, delayMs: 1000 });
   if (!createReady.ok) throw new Error(`did-not-reach-create:${createReady.url || page.url()}`);
+  setTaskState('running', {
+    task: `pixnet-whisky-${String(idNum).padStart(3, '0')}`,
+    current_step: 'create_ready',
+    last_ok_step: 'reached_posts_create'
+  });
 
   const start = page.getByRole('button', { name: /開始寫文章/ }).first();
   let reached = { ok: false, url: page.url() };
   for (let attempt = 1; attempt <= 3; attempt++) {
     console.log(`STEP setupEditor:start-button attempt ${attempt}`);
+    setTaskState('self_recovering', {
+      task: `pixnet-whisky-${String(idNum).padStart(3, '0')}`,
+      current_step: 'create_to_editor',
+      last_ok_step: 'reached_posts_create',
+      recovery_round: attempt,
+      note: 'trying create to editor transition'
+    });
     await start.waitFor({ state: 'visible', timeout: 15000 });
     await start.scrollIntoViewIfNeeded();
     await sleep(400);
@@ -129,7 +165,14 @@ async function setupEditor(page) {
         url: page.url(),
       };
     }, { tries: 8, delayMs: 1000 });
-    if (reached.ok) break;
+    if (reached.ok) {
+      setTaskState('running', {
+        task: `pixnet-whisky-${String(idNum).padStart(3, '0')}`,
+        current_step: 'editor_ready',
+        last_ok_step: 'reached_editor'
+      });
+      break;
+    }
     await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
     await sleep(1000);
   }
@@ -157,43 +200,7 @@ async function setDropdown(page, labelText, value, searchable) {
 }
 
 async function uploadImage(page, imagePath) {
-  const candidates = [
-    page.getByLabel('圖片').first(),
-    page.getByTitle('圖片').first(),
-    page.locator('button[aria-label="圖片"]').first(),
-    page.locator('span[aria-label="圖片"]').first(),
-    page.locator('.jodit-toolbar-button').filter({ hasText: '圖片' }).first(),
-  ];
-  for (const candidate of candidates) {
-    if (!(await candidate.isVisible().catch(() => false))) continue;
-    try {
-      await candidate.click({ timeout: 5000 });
-      break;
-    } catch {}
-  }
-  await sleep(1200);
-  const buffer = fs.readFileSync(imagePath);
-  const base64 = buffer.toString('base64');
-  await page.evaluate(async ({ selector, fileName, base64 }) => {
-    const target = document.querySelector(selector);
-    if (!target) throw new Error(`Drop target not found: ${selector}`);
-    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-    const file = new File([bytes], fileName, { type: 'image/jpeg' });
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    target.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer }));
-    target.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer }));
-    target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
-  }, {
-    selector: '.jodit-drag-and-drop__file-box',
-    fileName: path.basename(imagePath),
-    base64,
-  });
-  const uploaded = await waitForCondition(async () => {
-    const html = await page.locator('body').innerHTML().catch(() => '');
-    return { ok: html.includes('pimg.1px.tw') };
-  }, { tries: 25, delayMs: 1000 });
-  if (!uploaded.ok) throw new Error('image-upload-not-confirmed');
+  return uploadImageStrict(page, imagePath);
 }
 
 async function publishItem(page, item) {
@@ -204,12 +211,22 @@ async function publishItem(page, item) {
   await sleep(700);
   const titleReadback = await titleInput.inputValue();
   if (titleReadback !== item.title) throw new Error(`title-readback-mismatch:${titleReadback}`);
+  setTaskState('running', {
+    task: `pixnet-whisky-${item.num}`,
+    current_step: 'title_filled',
+    last_ok_step: 'title_filled'
+  });
 
   await setDropdown(page, '文章個人分類', 'Whisky', true);
   await setDropdown(page, '文章全站分類 (主要)', '美味食記', true);
   await setDropdown(page, '文章全站分類 (次要)', '生活綜合', true);
   await setDropdown(page, '文章閱讀權限', '公開', false);
   await setDropdown(page, '文章留言權限', '可留言，留言公開', false);
+  setTaskState('running', {
+    task: `pixnet-whisky-${item.num}`,
+    current_step: 'categories_set',
+    last_ok_step: 'categories_set'
+  });
 
   const tagInput = page.locator('input[placeholder="+ 新增標籤"]').first();
   for (const tag of item.tags) {
@@ -220,8 +237,18 @@ async function publishItem(page, item) {
     await page.keyboard.press('Enter');
     await sleep(600);
   }
+  setTaskState('running', {
+    task: `pixnet-whisky-${item.num}`,
+    current_step: 'tags_set',
+    last_ok_step: 'tags_set'
+  });
 
   await uploadImage(page, item.image);
+  setTaskState('running', {
+    task: `pixnet-whisky-${item.num}`,
+    current_step: 'image_uploaded',
+    last_ok_step: 'image_uploaded'
+  });
 
   await page.getByText('發布', { exact: true }).first().click();
   await sleep(1000);
@@ -237,6 +264,13 @@ async function publishItem(page, item) {
     };
   }, { tries: 25, delayMs: 1000 });
   if (!published.ok) throw new Error(`publish-not-verified:${item.num}`);
+  setTaskState('done', {
+    task: `pixnet-whisky-${item.num}`,
+    current_step: 'published',
+    last_ok_step: 'published',
+    note: published.postUrl || 'published verified',
+    user_notified: false
+  });
   return { num: item.num, title: item.title, postUrl: published.postUrl };
 }
 
@@ -252,29 +286,95 @@ function runCleanupAfterSuccess(success) {
 }
 
 (async () => {
-  const item = buildSpec(idNum);
-  const userDataDir = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'pixnet-user-data');
-  const context = await chromium.launchPersistentContext(userDataDir, {
-    headless: false,
-    executablePath: '/snap/bin/chromium',
-    env: {
-      ...process.env,
-      XDG_RUNTIME_DIR: '/run/user/1000',
-      WAYLAND_DISPLAY: 'wayland-0',
-      DISPLAY: ':0',
-    },
-    args: ['--no-sandbox'],
-    viewport: { width: 1400, height: 960 },
-  });
+  let item;
+  let context;
   let published = false;
   try {
+    item = buildSpec(idNum);
+    setTaskState('running', {
+      task: `pixnet-whisky-${String(idNum).padStart(3, '0')}`,
+      current_step: 'spec_built',
+      last_ok_step: 'spec_built',
+      note: item.title,
+      recovery_round: 0,
+      stuck_key: ''
+    });
+
+    const userDataDir = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'pixnet-user-data');
+    context = await chromium.launchPersistentContext(userDataDir, {
+      headless: false,
+      executablePath: '/snap/bin/chromium',
+      env: {
+        ...process.env,
+        XDG_RUNTIME_DIR: '/run/user/1000',
+        WAYLAND_DISPLAY: 'wayland-0',
+        DISPLAY: ':0',
+      },
+      args: ['--no-sandbox'],
+      viewport: { width: 1400, height: 960 },
+    });
+
     const page = context.pages()[0] || await context.newPage();
-    const result = await publishItem(page, item);
-    published = true;
-    console.log(JSON.stringify({ success: true, result }, null, 2));
+    let result;
+    let lastError = null;
+    let stuckKey = '';
+    let sameSpotRounds = 0;
+
+    for (let outerAttempt = 1; outerAttempt <= MAX_SELF_RECOVERY_ROUNDS; outerAttempt++) {
+      try {
+        result = await publishItem(page, item);
+        published = true;
+        console.log(JSON.stringify({ success: true, result }, null, 2));
+        break;
+      } catch (error) {
+        lastError = error;
+        const message = error?.message || String(error);
+        const currentKey = message.split(':')[0];
+        if (currentKey === stuckKey) sameSpotRounds += 1;
+        else {
+          stuckKey = currentKey;
+          sameSpotRounds = 1;
+        }
+
+        setTaskState('self_recovering', {
+          task: `pixnet-whisky-${item.num}`,
+          current_step: currentKey,
+          last_ok_step: 'see_previous_state',
+          recovery_round: sameSpotRounds,
+          stuck_key: stuckKey,
+          note: message
+        });
+
+        if (sameSpotRounds >= MAX_SELF_RECOVERY_ROUNDS) {
+          throw error;
+        }
+
+        try {
+          await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
+          await sleep(1000);
+          await page.context().clearCookies();
+          await sleep(500);
+        } catch {}
+      }
+    }
+
+    if (!published && lastError) throw lastError;
+  } catch (error) {
+    const message = error?.message || String(error);
+    setTaskState('blocked', {
+      task: `pixnet-whisky-${String(idNum).padStart(3, '0')}`,
+      failed_at: new Date().toISOString(),
+      current_step: message.split(':')[0],
+      error: message,
+      next_action: 'inspect blocker and report before retry',
+      user_notified: false
+    });
+    throw error;
   } finally {
-    await sleep(3000);
-    await context.close();
+    if (context) {
+      await sleep(3000);
+      await context.close().catch(() => {});
+    }
     runCleanupAfterSuccess(published);
   }
 })();

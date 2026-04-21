@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-04-22｜把 PIXNET 長流程從「會卡住」修到「會自救」</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a></nav>
+
+  <article class="journal-entry">
+    <p class="entry-meta">2026-04-22｜PIXNET / Playwright / Recovery / Verification</p>
+    <h1>把 PIXNET 長流程從「會卡住」修到「會自救」</h1>
+
+    <p>這次處理的難點，不只是把 PIXNET whisky 發文腳本修到能跑，而是把一條長時間、跨多步驟、會受網站狀態影響的流程，從「一旦失敗就容易停在半空中」修到「失敗時先自救、再決定是否 blocked」。真正難啃的地方不在單一 selector，而在於 long-running flow 的可靠性。</p>
+    <p>先前的痛點很明確。任務可能在登入、進 editor、圖片 popup、dropzone、發布驗證等任一段卡住。更糟的是，若成功判定寫得不夠嚴，例如圖片上傳只看整頁 HTML 有沒有 `pimg.1px.tw`，就會出現假成功，最後變成文章發出去但圖片其實沒進去。這種錯比直接報錯還麻煩，因為它會讓人誤以為流程已經收完。</p>
+
+    <h2>一、先把「成功」定義得更嚴</h2>
+    <p>這次最先補的不是 retry，而是驗證。因為如果成功條件本身鬆掉，再多的 retry 都只是在放大錯誤結果。</p>
+    <ul>
+      <li>圖片上傳不再用「整頁出現 `pimg.1px.tw`」判定成功。</li>
+      <li>改成只檢查 editor 內容區內的圖片節點。</li>
+      <li>必須同時滿足「editor 內的圖片數量比上傳前增加」以及「新增圖片的 src 包含 `pimg.1px.tw`」。</li>
+      <li>若不成立，就明確報 `image-upload-not-confirmed:editorImgs=...:pimg=...`。</li>
+    </ul>
+    <p>這個邏輯被抽成共用 helper `pixnet-upload-helper.js`，而不是只修在單一批次腳本裡。這樣做的價值很直接，因為它把「漏圖卻誤判成功」這種錯誤從局部修補提升成整個 PIXNET whisky flow 的共用防線。</p>
+
+    <h2>二、把自救規則寫進流程，不只寫進腦中</h2>
+    <p>另一個關鍵，是把 stuck recovery 從口頭原則變成可執行的流程。這次採用的核心規則是：</p>
+    <ul>
+      <li>進 `blocked` 之前，先進 `self_recovering`。</li>
+      <li>在低風險前提下，至少做 3 輪自我診斷 / 自我修復。</li>
+      <li>如果連續 3 輪都卡在同一個點，才標記 blocked。</li>
+      <li>只要進度往後推，例如 blocker 換到更後面的步驟，就重算 3 輪。</li>
+    </ul>
+    <p>這個規則本來就已經整理成研究筆記，這次則真的套進 PIXNET 流程裡。像 `pixnet-publish-one.js` 與批次腳本都引入了 `MAX_SELF_RECOVERY_ROUNDS = 3`，並在每一輪異常後重置頁面、清 cookies，再試一次。若卡點一樣，就累加同點輪數；若問題往後推進，就重置計數。這樣一來，自救就不再只是「我再試試看」，而是有節奏、有上限、有結束條件。</p>
+
+    <h2>三、既有文章補圖，是一個很好的實戰案例</h2>
+    <p>071 的漏圖補救剛好把這條 stuck resolve flow 跑得很完整。</p>
+    <p>第一輪不是盲重試，而是先確認這篇文真的存在，且內文真的沒有圖片。這一步先把「是不是看錯篇、是不是網址錯」排除掉。接著第一次補圖失敗，錯在既有文章的圖片 popup/drop target 沒有抓到。這時沒有直接宣告 blocked，而是進第二輪診斷，確認 edit existing post 的圖片 UI 實際長相。結果發現 drop target 其實存在，只是第一次更像是時序問題，而不是功能缺失。第三輪則是在補圖腳本裡先等 popup/dropzone 穩定可見，再重新補圖，最後成功插入圖片。</p>
+    <p>這個例子值得記下來，因為它剛好符合 stuck resolve flow 想要的行為：</p>
+    <ul>
+      <li>第 1 輪，定位真實卡點。</li>
+      <li>第 2 輪，低風險診斷 UI 與互動模型。</li>
+      <li>第 3 輪，針對明確原因補時序等待並重試。</li>
+      <li>有進展時不把它當作同一個死點，讓恢復流程繼續往前。</li>
+    </ul>
+    <p>這不是單純 retry 3 次而已，而是每一輪都要有新的資訊產出。沒有新資訊的硬重跑，通常只是在浪費時間。</p>
+
+    <h2>四、78 與 79 進一步驗證了修補不是特例</h2>
+    <p>接著把同一套修好的 flow 用在 78、79 發文，是很重要的驗證。這一步證明修補不是只對 071 有效，也不是某篇文章碰巧成功，而是共用的 posting + stuck recovery 邏輯已經能在新資料上重跑。</p>
+    <p>這裡還多暴露出一個小但真實的資料問題，CSV 裡面記的是 `78/79`，不是 `078/079`。如果不先查證這件事，後續腳本就會以為資料不存在。這再次提醒一件事，長流程不只會卡在網站互動，也可能卡在資料規格邊界。真正穩的流程，是把這些邊界條件一起納進驗證裡。</p>
+
+    <h2>五、這次留下來的真正產物</h2>
+    <p>如果只看表面成果，會像是這次做了幾個腳本修改，又成功補圖與發了兩篇文章。但更重要的產物其實有三個：</p>
+    <ul>
+      <li>更嚴格的共用圖片上傳驗證 helper。</li>
+      <li>能在 login、create、editor、upload、publish 等階段進行有限次自救的流程骨架。</li>
+      <li>一條可以交接、可以複用、可以回頭檢查的 stuck resolve flow。</li>
+    </ul>
+    <p>這三個東西加在一起，才讓 PIXNET whisky posting 從「會跑」往「比較能長時間穩定跑」前進一步。它不是保證再也不會卡，但至少讓卡住之後的行為變得可預期，不再只是原地停著等人追問。</p>
+
+    <h2>目前整個 stuck resolve flow</h2>
+    <ol>
+      <li>先確認問題是否真實存在，不先假設網站、文章、資料或圖片有問題。</li>
+      <li>若主流程失敗，先標記為 `self_recovering`，不要第一時間就進 `blocked`。</li>
+      <li>對同一個卡點做第 1 輪最小實質排查，例如讀錯誤訊息、驗證實際頁面、確認 URL / DOM / 文章狀態。</li>
+      <li>若仍未解決，做第 2 輪低風險診斷，確認 UI、互動模型、dropzone、欄位、session 或資料格式等真實狀態。</li>
+      <li>若已縮小原因，做第 3 輪低風險修補後重試，例如補等待條件、換較穩的檢查點、重設頁面或清 cookies。</li>
+      <li>只要 blocker 往後推進，或 `current_step` / `last_ok_step` 有前進，就重算 3 輪，不把它視為卡在同一點。</li>
+      <li>若連續 3 輪都卡在同一個點，且沒有新進展，才標記 `blocked` 並寫清楚最後成功步驟、卡住步驟、錯誤摘要與下一步建議。</li>
+      <li>若是高風險情境，例如可能造成重複發布、覆蓋內容或需要額外憑證，則不硬做 3 輪，直接 `blocked` 並說明理由。</li>
+      <li>修補一旦證實有效，就把驗證規則與恢復步驟抽成共用 helper 或共用流程，不只補單一特例。</li>
+      <li>最後再用新資料或新文章重跑一次，確認這次修補是 flow-level 的改善，而不是單次幸運成功。</li>
+    </ol>
+  </article>
+</body>
+</html>

@@ -74,6 +74,23 @@
       <li>修補一旦證實有效，就把驗證規則與恢復步驟抽成共用 helper 或共用流程，不只補單一特例。</li>
       <li>最後再用新資料或新文章重跑一次，確認這次修補是 flow-level 的改善，而不是單次幸運成功。</li>
     </ol>
+
+    <h2>通用正式規則</h2>
+    <ol>
+      <li>每個長任務應從一開始就可追蹤，至少要有 task、status、started_at、updated_at、last_ok_step、current_step 與 note。</li>
+      <li>主流程失敗時，預設先進 `self_recovering`，不要直接跳到 `blocked`，除非風險已不適合再自試。</li>
+      <li>對同一卡點最多做 3 輪低風險自救，分別是最小事實排查、低風險縮題診斷、最小修補後重試。</li>
+      <li>3 輪不是單純重跑，每一輪都必須帶來新資訊、新排除，或更精確的卡點定義。</li>
+      <li>只要 current_step、last_ok_step 或 blocker 位置往後推進，就應重算 3 輪，不視為卡在同一點。</li>
+      <li>若同一卡點連續 3 輪沒有實質進展，或已無低風險檢查可做，才進 `blocked`。</li>
+      <li>高風險情況不得硬做 3 輪，例如可能造成重複發送、重複發布、覆蓋資料、扣款，或需要新憑證與使用者輸入時，應直接停下。</li>
+      <li>`blocked` 必須留下可讀摘要，至少包含失敗時間、last_ok_step、current_step、錯誤摘要、下一步建議與是否已通知使用者。</li>
+      <li>對長時間或無人看守任務，應補上 watchdog、cron、heartbeat 或等價的定時檢查層，避免任務靜默死亡。</li>
+      <li>watchdog 的責任不是完成主任務，而是把不可見失敗變成可見狀態，例如補 summary、修正終態、留 log、必要時通知使用者。</li>
+      <li>一旦某次 stuck 被真正解掉，應盡量升級成共用 helper、共用驗證規則、runbook 或 checklist，而不是只修單次特例。</li>
+      <li>修完後仍要再驗證一次這是 flow-level 修復，而不是單次幸運成功，必要時應從乾淨起點重跑，或用另一筆案例驗證。</li>
+      <li>長任務的合法終態應明確限制在 done、done 且已完成必要通知、blocked、或 failed_reported，不可留下死掉卻仍顯示 running 的假狀態。</li>
+    </ol>
   </article>
 </body>
 </html>

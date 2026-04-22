@@ -91,6 +91,23 @@
       <li>修完後仍要再驗證一次這是 flow-level 修復，而不是單次幸運成功，必要時應從乾淨起點重跑，或用另一筆案例驗證。</li>
       <li>長任務的合法終態應明確限制在 done、done 且已完成必要通知、blocked、或 failed_reported，不可留下死掉卻仍顯示 running 的假狀態。</li>
     </ol>
+
+    <h2>General Formal Rules (English)</h2>
+    <ol>
+      <li>Every long-running task should be trackable from the start, with at least task, status, started_at, updated_at, last_ok_step, current_step, and note.</li>
+      <li>When the main flow fails, default to `self_recovering` first rather than jumping straight to `blocked`, unless the risk level makes further self-recovery inappropriate.</li>
+      <li>For the same stuck point, allow up to 3 low-risk recovery rounds: minimum factual diagnosis, low-risk narrowing, and smallest-fix retry.</li>
+      <li>These 3 rounds are not blind reruns. Each round must produce new information, eliminate a concrete hypothesis, or define the stuck point more precisely.</li>
+      <li>If current_step, last_ok_step, or the blocker position moves forward, restart the 3-round count rather than treating it as the same stuck point.</li>
+      <li>Only mark `blocked` when the same stuck point has failed 3 rounds without real progress, or when no further low-risk diagnosis remains.</li>
+      <li>Do not force 3 recovery rounds in high-risk situations, such as possible duplicate sending, duplicate publishing, data overwrite, financial impact, or cases that require new credentials or user input.</li>
+      <li>A `blocked` state must leave a readable summary, including at least the failure time, last_ok_step, current_step, error summary, next recommended action, and whether the user was notified.</li>
+      <li>For long-running or unattended tasks, add a watchdog, cron, heartbeat, or an equivalent periodic check layer so the task does not fail silently.</li>
+      <li>The watchdog's job is not to complete the main task, but to turn invisible failure into visible state, for example by writing a summary, correcting the terminal state, leaving logs, and notifying the user when needed.</li>
+      <li>Once a stuck issue is truly resolved, promote the fix into a shared helper, shared verification rule, runbook, or checklist rather than leaving it as a one-off patch.</li>
+      <li>After the repair, verify again that the result is a flow-level repair rather than a one-time lucky success, ideally by rerunning from a clean checkpoint or validating with another case.</li>
+      <li>The legal terminal states for substantial tasks should be limited to done, done with required final notification completed, blocked, or failed_reported. A dead task that still appears as running is not an acceptable final state.</li>
+    </ol>
   </article>
 </body>
 </html>

@@ -54,6 +54,117 @@ Use this when Alan asks for a 調查.
 - Distinguish clearly between partial progress and fully completed in status updates.
 - If the task includes sending, publishing, committing, scheduling, or other finalization actions, completion requires verifying that final action succeeded.
 
+## Stuck Handling and Recovery Standard
+
+Use this standard for long-running, multi-step, scheduled, background, or stateful tasks whenever progress can stall, drift, or silently fail.
+
+### 1. Trackable from the start
+- Every substantial task should begin with a visible state record when practical, for example a state file, task record, or equivalent status object.
+- The record should include at least: `task`, `status`, `started_at`, `updated_at`, `last_ok_step`, `current_step`, and a short human-readable `note`.
+- Do not let a long task run in the background with no way to inspect its state.
+
+### 2. Default failure transition: self-recovering first
+- When the main flow fails, do not jump straight to `blocked` unless risk requires it.
+- First move the task into `self_recovering`.
+- This means the task has a real problem, but low-risk diagnosis and repair are still in progress.
+
+### 3. Three-round self-recovery rule
+For the same stuck point, perform up to 3 low-risk recovery rounds before marking the task blocked.
+
+#### Round 1: minimum factual diagnosis
+- Read the actual error.
+- Verify the real current state.
+- Confirm the last successful checkpoint.
+- Confirm the real stuck step.
+
+#### Round 2: low-risk narrowing
+- Narrow the problem across UI, environment, session, permissions, timing, data, dependency state, or verification logic.
+- Eliminate wrong assumptions.
+- Convert vague failure into a smaller verified problem.
+
+#### Round 3: low-risk repair plus retry
+- Apply the smallest reasonable repair.
+- Add waits, reset a page/session, clear stale state, switch to a more reliable check, or retry from a clean checkpoint.
+- Re-run with stricter verification.
+
+### 4. Reset the counter when progress advances
+Do not count the task as stuck at the same point if any of the following happens:
+- `current_step` moves forward
+- `last_ok_step` advances
+- the blocker shifts from point A to a later point B
+- one concrete hypothesis is eliminated and the task enters a new verified checkpoint
+
+When progress advances, restart the 3-round counter for the new stuck point.
+
+### 5. When to mark blocked
+Only mark `blocked` when one of the following is true:
+- the same stuck point has failed 3 recovery rounds with no real progress
+- no further low-risk diagnosis is available
+- the next action would be unsafe or requires user input, credentials, approval, or an external decision
+
+### 6. High-risk exception
+Do not force 3 self-recovery rounds when the next attempts could cause harm, including:
+- duplicate sending or publishing
+- overwriting or damaging user data
+- financial impact or repeated charges
+- sensitive external side effects
+- required credentials or user-only input
+
+In those cases, stop early, mark `blocked`, and report why.
+
+### 7. Blocked state must be readable
+A blocked task must leave a human-readable summary, not just a shell error.
+At minimum include:
+- task name
+- failure time
+- `last_ok_step`
+- `current_step`
+- error summary
+- next recommended action
+- whether the user has been notified
+
+### 8. Watchdog / reminder layer for silent failures
+For durable or unattended tasks, prefer a second layer such as cron, watchdog, heartbeat checks, or equivalent monitoring.
+Its job is to detect cases like:
+- task still marked `running` but worker/process is dead
+- task state has not updated for too long
+- task is `blocked` but not yet surfaced
+- main work completed but final notification/delivery never happened
+
+### 9. Watchdog responsibility
+The watchdog does not need to complete the primary task.
+Its minimum job is to make silent failure visible by:
+- writing a summary or reason
+- correcting the terminal state to `blocked` or `failed_reported` when needed
+- leaving a log trail
+- notifying the user when the workflow requires visible escalation
+
+### 10. Promote successful fixes into shared rules
+When a stuck issue is truly resolved, do not leave the fix as a one-off patch if it can be generalized.
+Promote it into one or more of:
+- a reusable helper
+- a reusable verification rule
+- a runbook section
+- a durable checklist
+- a clearer task-state transition rule
+
+### 11. Verify flow-level repair, not one lucky success
+After fixing a stuck workflow, verify that the repair applies to the flow, not only to one exact case.
+When practical, re-run from the start, use a second case, or validate a fresh execution path.
+
+### 12. Legal terminal states
+For substantial tasks, acceptable terminal states are:
+- `done`
+- `done` with any required final notification/delivery completed
+- `blocked`
+- `failed_reported`
+
+Unacceptable terminal states include:
+- worker died but task still says `running`
+- work incomplete and no report exists
+- primary work done but required final notification/delivery not sent
+- failure exists but no readable summary exists
+
 ## Deliverables and Review Standards
 
 - If any task fails, perform a post-mortem using the 8D report method and strengthen preventive measures.

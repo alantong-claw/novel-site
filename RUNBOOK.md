@@ -61,6 +61,7 @@ Use this standard for long-running, multi-step, scheduled, background, or statef
 ### 1. Trackable from the start
 - Every substantial task should begin with a visible state record when practical, for example a state file, task record, or equivalent status object.
 - The record should include at least: `task`, `status`, `started_at`, `updated_at`, `last_ok_step`, `current_step`, and a short human-readable `note`.
+- When the task mixes primary execution with supporting work, also track `work_mode` when practical. Preferred values include `online_execution`, `offline_research`, `waiting_input`, `self_recovery`, and `delivery`.
 - Do not let a long task run in the background with no way to inspect its state.
 
 ### 2. Default failure transition: self-recovering first
@@ -199,3 +200,7 @@ Because subagents are isolated and cannot send messages directly to the main cha
 
 - Relay all subagent completion events and results directly to the user-facing channel as they arrive.
 - Do not consolidate or withhold messages when immediate visibility is more useful.
+- For any meaningful status update on a long-running task, explicitly classify the current state in plain language. Prefer labels such as `線上任務卡住`, `離線研究中`, `等待外部輸入`, `等待 Alan 確認`, `自動恢復中`, or `已完成`.
+- Do not describe offline benchmarking, data cleanup, variant generation, or exploratory analysis as if the main online task is still actively advancing. If the main task is paused while support work continues, say that clearly.
+- When a task is blocked on a human-provided artifact, answer, code, approval, or decision, say exactly what is being waited on and whether any autonomous progress is still happening.
+- If work shifts from primary execution to support research, call out the shift explicitly so Alan can distinguish real end-to-end progress from useful but indirect investigation.

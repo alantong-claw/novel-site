@@ -5,6 +5,7 @@ ROOT="/home/alantong/ai-work"
 PENDING_FILE="$ROOT/memory/backup-pending.json"
 TODAY="$(TZ=Asia/Taipei date +%F)"
 TS="$(TZ=Asia/Taipei date '+%Y-%m-%dT%H:%M:%S%z')"
+PENDING_DATE="$(grep -o '"date":"[^"]*"' "$PENDING_FILE" 2>/dev/null | head -n 1 | cut -d'"' -f4 || true)"
 
 if [[ ! -f "$PENDING_FILE" ]]; then
   echo "No pending backup request."
@@ -16,8 +17,8 @@ if ! grep -Eq '"status":"(pending|started)"' "$PENDING_FILE"; then
   exit 0
 fi
 
-if ! grep -q "\"date\":\"$TODAY\"" "$PENDING_FILE"; then
-  echo "Pending backup request is for a different date."
+if [[ -z "$PENDING_DATE" ]]; then
+  echo "Pending backup request has no date."
   exit 0
 fi
 

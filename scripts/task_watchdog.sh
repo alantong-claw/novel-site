@@ -81,7 +81,30 @@ for name in sorted(os.listdir(TASK_DIR)):
         log(f'[{datetime.now().astimezone().strftime("%F %T")}] blocked task awaiting notify: {path}')
 PY
 
+PIXNET_ALERT_TARGET="${PIXNET_ALERT_TARGET:-8707204748}"
+
 for progress in "$ROOT"/memory/pixnet-whisky-*-progress.json; do
   [[ -e "$progress" ]] || continue
   python3 "$ROOT/scripts/pixnet/pixnet_range_watchdog.py" "$progress" 8 || true
+  alert_json="$(python3 "$ROOT/scripts/pixnet/pixnet_range_alert.py" "$progress" "$PIXNET_ALERT_TARGET" 2>/dev/null || true)"
+  if [[ -n "$alert_json" ]]; then
+    target="$(printf '%s' "$alert_json" | python3 -c 'import sys,json; print(json.load(sys.stdin)["target"])')"
+    message="$(printf '%s' "$alert_json" | python3 -c 'import sys,json; print(json.load(sys.stdin)["message"])')"
+    printf '[%s] pixnet blocked alert sending: %s -> %s\n' "$(date '+%F %T')" "$progress" "$target" >> "$LOG"
+    if openclaw message send --channel telegram --target "$target" --message "$message" >> "$LOG" 2>&1; then
+      printf '[%s] pixnet blocked alert sent: %s -> %s\n' "$(date '+%F %T')" "$progress" "$target" >> "$LOG"
+    else
+      printf '[%s] pixnet blocked alert delivery failed: %s -> %s\n' "$(date '+%F %T')" "$progress" "$target" >> "$LOG"
+      python3 - <<'PY' "$progress"
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+data = json.loads(path.read_text(encoding='utf-8'))
+data['alertSent'] = False
+path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+PY
+    fi
+  fi
 done

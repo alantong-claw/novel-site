@@ -81,21 +81,22 @@ for name in sorted(os.listdir(TASK_DIR)):
         log(f'[{datetime.now().astimezone().strftime("%F %T")}] blocked task awaiting notify: {path}')
 PY
 
-PIXNET_ALERT_TARGET="${PIXNET_ALERT_TARGET:-8707204748}"
+TASK_ALERT_TARGET="${TASK_ALERT_TARGET:-8707204748}"
 
-for progress in "$ROOT"/memory/pixnet-whisky-*-progress.json; do
-  [[ -e "$progress" ]] || continue
-  python3 "$ROOT/scripts/pixnet/pixnet_range_watchdog.py" "$progress" 8 || true
-  alert_json="$(python3 "$ROOT/scripts/pixnet/pixnet_range_alert.py" "$progress" "$PIXNET_ALERT_TARGET" 2>/dev/null || true)"
-  if [[ -n "$alert_json" ]]; then
-    target="$(printf '%s' "$alert_json" | python3 -c 'import sys,json; print(json.load(sys.stdin)["target"])')"
-    message="$(printf '%s' "$alert_json" | python3 -c 'import sys,json; print(json.load(sys.stdin)["message"])')"
-    printf '[%s] pixnet blocked alert sending: %s -> %s\n' "$(date '+%F %T')" "$progress" "$target" >> "$LOG"
-    if openclaw message send --channel telegram --target "$target" --message "$message" >> "$LOG" 2>&1; then
-      printf '[%s] pixnet blocked alert sent: %s -> %s\n' "$(date '+%F %T')" "$progress" "$target" >> "$LOG"
-    else
-      printf '[%s] pixnet blocked alert delivery failed: %s -> %s\n' "$(date '+%F %T')" "$progress" "$target" >> "$LOG"
-      python3 - <<'PY' "$progress"
+send_alert_json() {
+  local kind="$1"
+  local source_path="$2"
+  local alert_json="$3"
+  local target
+  local message
+  target="$(printf '%s' "$alert_json" | python3 -c 'import sys,json; print(json.load(sys.stdin)["target"])')"
+  message="$(printf '%s' "$alert_json" | python3 -c 'import sys,json; print(json.load(sys.stdin)["message"])')"
+  printf '[%s] %s alert sending: %s -> %s\n' "$(date '+%F %T')" "$kind" "$source_path" "$target" >> "$LOG"
+  if openclaw message send --channel telegram --target "$target" --message "$message" >> "$LOG" 2>&1; then
+    printf '[%s] %s alert sent: %s -> %s\n' "$(date '+%F %T')" "$kind" "$source_path" "$target" >> "$LOG"
+  else
+    printf '[%s] %s alert delivery failed: %s -> %s\n' "$(date '+%F %T')" "$kind" "$source_path" "$target" >> "$LOG"
+    python3 - <<'PY' "$source_path"
 import json
 import sys
 from pathlib import Path
@@ -105,6 +106,22 @@ data = json.loads(path.read_text(encoding='utf-8'))
 data['alertSent'] = False
 path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 PY
-    fi
+  fi
+}
+
+for progress in "$ROOT"/memory/pixnet-whisky-*-progress.json; do
+  [[ -e "$progress" ]] || continue
+  python3 "$ROOT/scripts/pixnet/pixnet_range_watchdog.py" "$progress" 8 || true
+  alert_json="$(python3 "$ROOT/scripts/pixnet/pixnet_range_alert.py" "$progress" "$TASK_ALERT_TARGET" 2>/dev/null || true)"
+  if [[ -n "$alert_json" ]]; then
+    send_alert_json "pixnet-progress" "$progress" "$alert_json"
+  fi
+done
+
+for state in "$TASK_DIR"/*.json; do
+  [[ -e "$state" ]] || continue
+  alert_json="$(python3 "$ROOT/scripts/task_alert.py" "$state" "$TASK_ALERT_TARGET" 2>/dev/null || true)"
+  if [[ -n "$alert_json" ]]; then
+    send_alert_json "task-state" "$state" "$alert_json"
   fi
 done

@@ -148,6 +148,16 @@
 4. 模擬 `dragenter` / `dragover` / `drop`
 5. 成功證據：頁面內出現 `pimg.1px.tw` 的文章圖片 URL
 
+### 編輯既有文章 / 補圖
+- 不要假設 `https://panel.pixnet.tw/posts/<postId>` 直開後就一定在可編輯 editor。
+- 先走 guarded path：
+  1. login
+  2. 驗證可成功進 `https://panel.pixnet.tw/posts`
+  3. 再進既有文章 `https://panel.pixnet.tw/posts/<postId>`
+  4. 驗證 `textarea[name="title"]` / `#文章標題` 與 `文章個人分類` 都可見
+- 若直開既有文章被打回 login 頁，這不是 editor selector 問題，而是 session / login establishment 問題。
+- 補圖後不能只信 editor 端，還要回 public page 驗證該文章真的出現 `pimg.1px.tw`。
+
 ### 發布
 互動模型：
 - 點右上 `發布`

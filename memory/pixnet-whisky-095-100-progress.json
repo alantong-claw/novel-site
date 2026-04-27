@@ -1,0 +1,15 @@
+{
+  "rangeStart": 95,
+  "rangeEnd": 100,
+  "taskName": "pixnet-whisky-095-100",
+  "nextId": 97,
+  "lastPublishedId": 96,
+  "lastPublishedUrl": "https://alantong.pixnet.net/blog/posts/889659083651619269",
+  "completed": false,
+  "stallCount": 0,
+  "stalled": false,
+  "failureCount": 0,
+  "status": "running",
+  "finalNotified": false,
+  "updatedAt": "2026-04-27T23:56:07.266266+00:00"
+}

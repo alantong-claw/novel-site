@@ -36,13 +36,16 @@ def update_task_state(state_file: Path, status: str, **fields):
 
 
 def parse_result_json(log_text: str):
-    idx = log_text.rfind('{')
-    while idx != -1:
-        chunk = log_text[idx:]
+    lines = [line.strip() for line in log_text.splitlines() if line.strip()]
+    for line in reversed(lines):
+        if not line.startswith('{'):
+            continue
         try:
-            return json.loads(chunk)
+            data = json.loads(line)
         except Exception:
-            idx = log_text.rfind('{', 0, idx)
+            continue
+        if data.get('success') is True and isinstance(data.get('result'), dict):
+            return data
     return None
 
 
@@ -100,6 +103,10 @@ def main():
         progress['stalled'] = False
         progress['failureCount'] = 0
         progress['status'] = 'running'
+        progress.pop('lastError', None)
+        progress.pop('lastErrorLog', None)
+        progress.pop('watchdogReason', None)
+        progress.pop('alertSent', None)
         if progress['nextId'] > progress['rangeEnd']:
             progress['completed'] = True
             progress['status'] = 'done'

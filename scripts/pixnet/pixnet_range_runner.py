@@ -76,12 +76,12 @@ def main():
         progress['status'] = 'done'
         progress['updatedAt'] = now_iso_utc()
         write_json(progress_path, progress)
-        update_task_state(task_state_file, 'done', task=task_name, current_step='range_complete', last_ok_step='range_complete', note='range already complete', user_notified=progress.get('finalNotified', False))
+        update_task_state(task_state_file, 'done', task=task_name, alert_scope='owner', current_step='range_complete', last_ok_step='range_complete', note='range already complete', user_notified=progress.get('finalNotified', False))
         return
 
     next_id = int(progress['nextId'])
     range_note = f"{next_id:03d}/{progress['rangeEnd']:03d}"
-    update_task_state(task_state_file, 'running', task=task_name, current_step='launch_single_post', last_ok_step=f"published_{progress.get('lastPublishedId', progress['rangeStart'] - 1):03d}", note=range_note)
+    update_task_state(task_state_file, 'running', task=task_name, alert_scope='owner', current_step='launch_single_post', last_ok_step=f"published_{progress.get('lastPublishedId', progress['rangeStart'] - 1):03d}", note=range_note)
 
     log_file = log_dir / f'pixnet-whisky-{next_id:03d}.log'
     cmd = ['node', str(DEFAULT_NODE_SCRIPT), str(next_id)]
@@ -105,7 +105,7 @@ def main():
             progress['status'] = 'done'
         progress['updatedAt'] = now_iso_utc()
         write_json(progress_path, progress)
-        update_task_state(task_state_file, 'done' if progress['completed'] else 'running', task=task_name, current_step='range_complete' if progress['completed'] else 'published_one', last_ok_step=f'published_{next_id:03d}', note=post_url or range_note, user_notified=progress.get('finalNotified', False))
+        update_task_state(task_state_file, 'done' if progress['completed'] else 'running', task=task_name, alert_scope='owner', current_step='range_complete' if progress['completed'] else 'published_one', last_ok_step=f'published_{next_id:03d}', note=post_url or range_note, user_notified=progress.get('finalNotified', False))
         return
 
     progress['failureCount'] = int(progress.get('failureCount', 0)) + 1
@@ -123,7 +123,7 @@ def main():
         if line:
             first_line = line[:400]
             break
-    update_task_state(task_state_file, 'blocked', task=task_name, current_step=f'publish_{next_id:03d}', last_ok_step=f"published_{progress.get('lastPublishedId', progress['rangeStart'] - 1):03d}", error=progress['lastError'], next_action='inspect log and decide whether safe to retry same id', note=first_line or str(log_file), user_notified=False)
+    update_task_state(task_state_file, 'blocked', task=task_name, alert_scope='owner', current_step=f'publish_{next_id:03d}', last_ok_step=f"published_{progress.get('lastPublishedId', progress['rangeStart'] - 1):03d}", error=progress['lastError'], next_action='inspect log and decide whether safe to retry same id', note=first_line or str(log_file), user_notified=False)
     sys.exit(proc.returncode or 1)
 
 

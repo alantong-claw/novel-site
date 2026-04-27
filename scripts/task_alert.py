@@ -7,15 +7,6 @@ DEFAULT_TELEGRAM_TARGET = '8707204748'
 DEFAULT_SESSION_KEY = f'agent:main:telegram:direct:{DEFAULT_TELEGRAM_TARGET}'
 ALERTABLE_STATUSES = {'blocked'}
 ALERTABLE_WATCHDOG_REASONS = {'running_timeout', 'done_without_final_delivery'}
-SUPPRESS_TASK_PREFIXES = ('pixnet-whisky-',)
-
-
-def is_suppressed_child_task(task_name: str) -> bool:
-    if not task_name.startswith(SUPPRESS_TASK_PREFIXES):
-        return False
-    suffix = task_name[len('pixnet-whisky-'):]
-    parts = suffix.split('-')
-    return len(parts) == 1 and parts[0].isdigit()
 
 
 def read_json(path: Path):
@@ -27,12 +18,12 @@ def write_json(path: Path, data):
 
 
 def should_alert(task: dict, path: Path) -> bool:
-    task_name = task.get('task') or path.stem
     if task.get('alertSent'):
         return False
     if task.get('user_notified') is True:
         return False
-    if is_suppressed_child_task(task_name):
+    alert_scope = task.get('alert_scope', 'owner')
+    if alert_scope in {'child', 'silent'}:
         return False
     if task.get('status') in ALERTABLE_STATUSES:
         return True

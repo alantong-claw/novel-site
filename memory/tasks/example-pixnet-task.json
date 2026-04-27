@@ -1,0 +1,13 @@
+{
+  "status": "blocked",
+  "updated_at": "2026-04-27T11:09:06+0800",
+  "task": "pixnet-whisky-demo",
+  "last_ok_step": "spec_built",
+  "current_step": "login_to_posts",
+  "note": "demo task state",
+  "started_at": "2026-04-21T11:56:16+0800",
+  "watchdog_reason": "running_timeout",
+  "next_action": "inspect task and summarize blocker",
+  "alertSent": true,
+  "alert_scope": "owner"
+}

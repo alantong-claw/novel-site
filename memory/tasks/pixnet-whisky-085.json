@@ -1,0 +1,18 @@
+{
+  "status": "done",
+  "updated_at": "2026-04-27T13:01:46+0800",
+  "task": "pixnet-whisky-085",
+  "current_step": "published",
+  "last_ok_step": "published",
+  "note": "https://alantong.pixnet.net/blog/posts/889286520467428929",
+  "recovery_round": "1",
+  "stuck_key": "",
+  "started_at": "2026-04-27T07:06:14+0800",
+  "failed_at": "2026-04-26T23:10:25.503Z",
+  "error": "publish-not-verified:085",
+  "next_action": "inspect blocker and report before retry",
+  "user_notified": false,
+  "watchdog_reason": "done_without_final_delivery",
+  "alertSent": true,
+  "alert_scope": "child"
+}

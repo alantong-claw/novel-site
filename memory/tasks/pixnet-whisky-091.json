@@ -1,0 +1,15 @@
+{
+  "status": "done",
+  "updated_at": "2026-04-27T13:01:46+0800",
+  "task": "pixnet-whisky-091",
+  "current_step": "published",
+  "last_ok_step": "published",
+  "note": "https://alantong.pixnet.net/blog/posts/889294172601785381",
+  "recovery_round": "1",
+  "stuck_key": "",
+  "started_at": "2026-04-27T07:45:01+0800",
+  "user_notified": false,
+  "watchdog_reason": "done_without_final_delivery",
+  "next_action": "send final completion update or mark intentionally silent",
+  "alert_scope": "child"
+}

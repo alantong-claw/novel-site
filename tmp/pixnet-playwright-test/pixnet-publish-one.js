@@ -293,6 +293,7 @@ function runCleanupAfterSuccess(success) {
     item = buildSpec(idNum);
     setTaskState('running', {
       task: `pixnet-whisky-${String(idNum).padStart(3, '0')}`,
+      alert_scope: 'child',
       current_step: 'spec_built',
       last_ok_step: 'spec_built',
       note: item.title,

@@ -1,0 +1,14 @@
+{
+  "status": "done",
+  "updated_at": "2026-04-21T13:31:06+0800",
+  "task": "pixnet-whisky-070-076",
+  "current_step": "all_published_notified",
+  "last_ok_step": "all_published_notified",
+  "note": "070,071,072,073,074,075,076",
+  "recovery_round": "1",
+  "current_item": "076",
+  "started_at": "2026-04-21T12:31:59+0800",
+  "stuck_key": "074:publish-not-verified",
+  "user_notified": true,
+  "alert_scope": "owner"
+}

@@ -61,6 +61,11 @@ Use this standard for long-running, multi-step, scheduled, background, or statef
 ### 1. Trackable from the start
 - Every substantial task should begin with a visible state record when practical, for example a state file, task record, or equivalent status object.
 - The record should include at least: `task`, `status`, `started_at`, `updated_at`, `last_ok_step`, `current_step`, and a short human-readable `note`.
+- Also include an explicit `alert_scope` whenever the task may be watched or escalated. Preferred values are:
+  - `owner`: this task represents the user-visible owner flow and may alert the user
+  - `child`: this task is an internal child task and should not alert the user by itself
+  - `silent`: this task is record-only and should never alert
+- Do not infer alert behavior from task names when an explicit scope can be written.
 - When the task mixes primary execution with supporting work, also track `work_mode` when practical. Preferred values include `online_execution`, `offline_research`, `waiting_input`, `self_recovery`, and `delivery`.
 - Do not let a long task run in the background with no way to inspect its state.
 
@@ -139,6 +144,12 @@ Its minimum job is to make silent failure visible by:
 - correcting the terminal state to `blocked` or `failed_reported` when needed
 - leaving a log trail
 - notifying the user when the workflow requires visible escalation
+
+Watchdog-driven notification rules:
+- Notify for `alert_scope=owner` tasks when they become `blocked`, exceed timeout into a watchdog failure state, or finish the main work but are missing required final delivery.
+- Do not notify separately for `alert_scope=child` tasks unless a higher-level owner task does not exist and the child has been explicitly promoted.
+- Keep child-task noise out of the user channel. Prefer one owner-level alert that summarizes the affected subtask(s).
+- If delivery of an automatic alert fails, preserve enough state to retry on the next watchdog cycle instead of silently dropping the alert.
 
 ### 10. Promote successful fixes into shared rules
 When a stuck issue is truly resolved, do not leave the fix as a one-off patch if it can be generalized.

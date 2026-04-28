@@ -71,10 +71,10 @@ async function uploadImageStrict(page, imagePath) {
   return uploaded;
 }
 
-async function verifyPublicArticleImage(page, publicUrl) {
+async function verifyPublicArticleImage(page, publicUrl, expectedPostId = '') {
   await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(resolve => setTimeout(resolve, 4000));
-  return await page.evaluate(() => {
+  return await page.evaluate((expectedPostId) => {
     const candidates = [
       '.article-content',
       '.article-content-inner',
@@ -91,12 +91,14 @@ async function verifyPublicArticleImage(page, publicUrl) {
     }
     const scope = root || document.body;
     const pimgs = [...scope.querySelectorAll('img')].map(i => i.src).filter(s => s.includes('pimg.1px.tw'));
+    const matched = expectedPostId ? pimgs.filter(s => s.includes(`/post/${expectedPostId}/`)) : pimgs;
     return {
-      ok: pimgs.length > 0,
+      ok: matched.length > 0,
       rootClass: root ? root.className : null,
       pimgs,
+      matched,
     };
-  });
+  }, expectedPostId);
 }
 
 module.exports = { uploadImageStrict, verifyPublicArticleImage, waitForCondition };

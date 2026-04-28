@@ -274,7 +274,9 @@ async function publishItem(page, item) {
   }, { tries: 25, delayMs: 1000 });
   if (!published.ok) throw new Error(`publish-not-verified:${item.num}`);
   const postUrl = await findPublishedPostUrl(page, item.title);
-  const publicImage = await verifyPublicArticleImage(page, postUrl);
+  const postIdMatch = postUrl.match(/\/blog\/posts\/(\d+)/);
+  const expectedPostId = postIdMatch ? postIdMatch[1] : '';
+  const publicImage = await verifyPublicArticleImage(page, postUrl, expectedPostId);
   if (!publicImage.ok) throw new Error(`public-image-not-verified:${item.num}`);
   setTaskState('done', {
     task: `pixnet-whisky-${item.num}`,
@@ -283,7 +285,7 @@ async function publishItem(page, item) {
     note: postUrl || 'published verified',
     user_notified: false
   });
-  return { num: item.num, title: item.title, postUrl, publicPimgs: publicImage.pimgs };
+  return { num: item.num, title: item.title, postUrl, publicPimgs: publicImage.matched || publicImage.pimgs };
 }
 
 function runCleanupAfterSuccess(success) {

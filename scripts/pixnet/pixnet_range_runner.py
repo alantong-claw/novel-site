@@ -37,12 +37,21 @@ def update_task_state(state_file: Path, status: str, **fields):
     subprocess.run(args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
-def read_child_task_result(task_id: int):
+def clear_child_task_state(task_id: int):
+    task_path = ROOT / 'memory' / 'tasks' / f'pixnet-whisky-{task_id:03d}.json'
+    if task_path.exists():
+        task_path.unlink()
+
+
+def read_child_task_result(task_id: int, launched_after_utc: str):
     task_path = ROOT / 'memory' / 'tasks' / f'pixnet-whisky-{task_id:03d}.json'
     if not task_path.exists():
         return None
     data = read_json(task_path)
     if data.get('status') != 'done':
+        return None
+    updated_at = data.get('updated_at', '')
+    if updated_at and launched_after_utc and updated_at < launched_after_utc:
         return None
     note = data.get('note', '')
     if isinstance(note, str) and note.startswith('https://'):
@@ -124,12 +133,14 @@ def main():
     update_task_state(task_state_file, 'running', task=task_name, alert_scope='owner', current_step='launch_single_post', last_ok_step=f"published_{progress.get('lastPublishedId', progress['rangeStart'] - 1):03d}", note=range_note)
 
     log_file = log_dir / f'pixnet-whisky-{next_id:03d}.log'
+    clear_child_task_state(next_id)
+    launched_after_utc = now_iso_local()
     cmd = ['node', str(DEFAULT_NODE_SCRIPT), str(next_id)]
     with log_file.open('w', encoding='utf-8') as f:
         proc = subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT, text=True)
 
     log_text = log_file.read_text(encoding='utf-8', errors='ignore')
-    result = read_child_task_result(next_id)
+    result = read_child_task_result(next_id, launched_after_utc)
 
     if proc.returncode == 0 and result and result.get('success') and result.get('result', {}).get('num') == f'{next_id:03d}':
         post_url = result.get('result', {}).get('postUrl', '')

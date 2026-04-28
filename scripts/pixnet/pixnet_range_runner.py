@@ -35,17 +35,22 @@ def update_task_state(state_file: Path, status: str, **fields):
     subprocess.run(args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
-def parse_result_json(log_text: str):
-    lines = [line.strip() for line in log_text.splitlines() if line.strip()]
-    for line in reversed(lines):
-        if not line.startswith('{'):
-            continue
-        try:
-            data = json.loads(line)
-        except Exception:
-            continue
-        if data.get('success') is True and isinstance(data.get('result'), dict):
-            return data
+def read_child_task_result(task_id: int):
+    task_path = ROOT / 'memory' / 'tasks' / f'pixnet-whisky-{task_id:03d}.json'
+    if not task_path.exists():
+        return None
+    data = read_json(task_path)
+    if data.get('status') != 'done':
+        return None
+    note = data.get('note', '')
+    if isinstance(note, str) and note.startswith('https://'):
+        return {
+            'success': True,
+            'result': {
+                'num': f'{task_id:03d}',
+                'postUrl': note,
+            }
+        }
     return None
 
 
@@ -92,7 +97,7 @@ def main():
         proc = subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT, text=True)
 
     log_text = log_file.read_text(encoding='utf-8', errors='ignore')
-    result = parse_result_json(log_text)
+    result = read_child_task_result(next_id)
 
     if proc.returncode == 0 and result and result.get('success') and result.get('result', {}).get('num') == f'{next_id:03d}':
         post_url = result.get('result', {}).get('postUrl', '')

@@ -60,7 +60,7 @@ function setTaskState(status, fields = {}) {
 function buildSpec(idNum) {
   const id = String(idNum).padStart(3, '0');
   const csvPath = '/mnt/g/TMP/whisky_photo/Whisky365_NoteAll.csv';
-  const txt = fs.readFileSync(csvPath, 'latin1').replace(/^\uFEFF/, '');
+  const txt = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '');
   const rows = txt.split(/\r?\n/).filter(Boolean).map(parseCsvLine);
   const row = rows.find(r => r && clean(r[0]) === String(idNum));
   if (!row) throw new Error(`row-not-found:${idNum}`);

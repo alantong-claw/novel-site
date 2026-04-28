@@ -16,7 +16,7 @@ def write_json(path: Path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
-def build_message(progress: dict) -> str:
+def build_blocked_message(progress: dict) -> str:
     task = progress.get('taskName') or f"pixnet-whisky-{progress['rangeStart']:03d}-{progress['rangeEnd']:03d}"
     next_id = progress.get('nextId')
     last_id = progress.get('lastPublishedId')
@@ -33,6 +33,17 @@ def build_message(progress: dict) -> str:
     )
 
 
+def build_complete_message(progress: dict) -> str:
+    task = progress.get('taskName') or f"pixnet-whisky-{progress['rangeStart']:03d}-{progress['rangeEnd']:03d}"
+    return (
+        f"PIXNET 發文已完成。\n\n"
+        f"- task: {task}\n"
+        f"- 範圍: {progress.get('rangeStart')}-{progress.get('rangeEnd')}\n"
+        f"- 最後完成: {progress.get('lastPublishedId')}\n"
+        f"- 最後文章: {progress.get('lastPublishedUrl') or 'n/a'}"
+    )
+
+
 def main():
     if len(sys.argv) < 2:
         print('usage: pixnet_range_alert.py <progress.json> [telegramTarget|sessionKey]', file=sys.stderr)
@@ -45,20 +56,33 @@ def main():
     session_key = destination if destination.startswith('agent:') else f'agent:main:telegram:direct:{destination}'
     telegram_target = destination.split(':')[-1] if destination.startswith('agent:') else destination
 
-    if progress.get('alertSent'):
-        return
     if progress.get('completed'):
+        if progress.get('finalNotified'):
+            return
+        message = build_complete_message(progress)
+        print(json.dumps({
+            'sessionKey': session_key,
+            'channel': 'telegram',
+            'target': telegram_target,
+            'message': message,
+            'progressPath': str(progress_path),
+            'kind': 'complete'
+        }, ensure_ascii=False))
+        return
+
+    if progress.get('alertSent'):
         return
     if progress.get('status') != 'blocked' and not progress.get('stalled'):
         return
 
-    message = build_message(progress)
+    message = build_blocked_message(progress)
     print(json.dumps({
         'sessionKey': session_key,
         'channel': 'telegram',
         'target': telegram_target,
         'message': message,
-        'progressPath': str(progress_path)
+        'progressPath': str(progress_path),
+        'kind': 'blocked'
     }, ensure_ascii=False))
 
     progress['alertSent'] = True

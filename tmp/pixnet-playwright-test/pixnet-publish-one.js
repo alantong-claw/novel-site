@@ -204,15 +204,18 @@ async function uploadImage(page, imagePath) {
 }
 
 async function findPublishedPostUrl(page, itemTitle) {
-  const match = page.locator('a[href^="https://alantong.pixnet.net/blog/posts/"]', { hasText: 'https://alantong.pixnet.net/blog/posts/' }).first();
-  const direct = await match.getAttribute('href').catch(() => null);
-  if (direct) return direct;
+  const cards = page.locator('div.group.hover\\:bg-primary\\/5, div.group');
+  const count = await cards.count().catch(() => 0);
+  for (let i = 0; i < count; i++) {
+    const card = cards.nth(i);
+    const text = await card.innerText().catch(() => '');
+    if (!text.includes(itemTitle)) continue;
+    const href = await card.locator('a[href^="https://alantong.pixnet.net/blog/posts/"]').first().getAttribute('href').catch(() => null);
+    if (href) return href;
+  }
 
-  const all = await page.locator('a[href^="https://alantong.pixnet.net/blog/posts/"]').evaluateAll(nodes =>
-    nodes.map(n => ({ href: n.getAttribute('href') || '', text: (n.textContent || '').trim() }))
-  ).catch(() => []);
-  const byHref = all.find(x => x.href.includes('/blog/posts/'));
-  if (byHref) return byHref.href;
+  const fallback = await page.locator('a[href^="https://alantong.pixnet.net/blog/posts/"]').first().getAttribute('href').catch(() => null);
+  if (fallback) return fallback;
   throw new Error(`post-url-not-found:${itemTitle}`);
 }
 
@@ -256,7 +259,7 @@ async function publishItem(page, item) {
     last_ok_step: 'tags_set'
   });
 
-  await uploadImage(page, item.image);
+  const uploadResult = await uploadImage(page, item.image);
   setTaskState('running', {
     task: `pixnet-whisky-${item.num}`,
     current_step: 'image_uploaded',
@@ -276,7 +279,7 @@ async function publishItem(page, item) {
   const postUrl = await findPublishedPostUrl(page, item.title);
   const postIdMatch = postUrl.match(/\/blog\/posts\/(\d+)/);
   const expectedPostId = postIdMatch ? postIdMatch[1] : '';
-  const publicImage = await verifyPublicArticleImage(page, postUrl, expectedPostId);
+  const publicImage = await verifyPublicArticleImage(page, postUrl, expectedPostId, uploadResult.newestPimgSrc || '');
   if (!publicImage.ok) throw new Error(`public-image-not-verified:${item.num}`);
   setTaskState('done', {
     task: `pixnet-whisky-${item.num}`,

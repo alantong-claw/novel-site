@@ -57,11 +57,14 @@ async function uploadImageStrict(page, imagePath) {
       nodes.map(n => ({ src: n.getAttribute('src') || '', outer: (n.outerHTML || '').slice(0, 300) }))
     ).catch(() => []);
     const pimgEditorImgs = editorImgs.filter(x => x.src.includes('pimg.1px.tw'));
+    const newPimgEditorImgs = pimgEditorImgs.slice(beforeEditorImageCount);
     return {
       ok: pimgEditorImgs.length > 0 && editorImgs.length > beforeEditorImageCount,
       editorImageCount: editorImgs.length,
       pimgEditorImageCount: pimgEditorImgs.length,
       editorImgs,
+      newestPimgSrc: pimgEditorImgs.length ? pimgEditorImgs[pimgEditorImgs.length - 1].src : '',
+      newPimgEditorImgs,
     };
   }, { tries: 25, delayMs: 1000 });
 
@@ -71,10 +74,10 @@ async function uploadImageStrict(page, imagePath) {
   return uploaded;
 }
 
-async function verifyPublicArticleImage(page, publicUrl, expectedPostId = '') {
+async function verifyPublicArticleImage(page, publicUrl, expectedPostId = '', expectedImageSrc = '') {
   await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(resolve => setTimeout(resolve, 4000));
-  return await page.evaluate((expectedPostId) => {
+  return await page.evaluate(({ expectedPostId, expectedImageSrc }) => {
     const candidates = [
       '.article-content',
       '.article-content-inner',
@@ -91,14 +94,16 @@ async function verifyPublicArticleImage(page, publicUrl, expectedPostId = '') {
     }
     const scope = root || document.body;
     const pimgs = [...scope.querySelectorAll('img')].map(i => i.src).filter(s => s.includes('pimg.1px.tw'));
-    const matched = expectedPostId ? pimgs.filter(s => s.includes(`/post/${expectedPostId}/`)) : pimgs;
+    const matchedByPost = expectedPostId ? pimgs.filter(s => s.includes(`/post/${expectedPostId}/`)) : pimgs;
+    const matchedBySrc = expectedImageSrc ? pimgs.filter(s => s === expectedImageSrc) : matchedByPost;
     return {
-      ok: matched.length > 0,
+      ok: matchedBySrc.length > 0,
       rootClass: root ? root.className : null,
       pimgs,
-      matched,
+      matched: matchedBySrc,
+      matchedByPost,
     };
-  }, expectedPostId);
+  }, { expectedPostId, expectedImageSrc });
 }
 
 module.exports = { uploadImageStrict, verifyPublicArticleImage, waitForCondition };

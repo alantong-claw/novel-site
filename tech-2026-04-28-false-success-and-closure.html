@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-04-28｜PIXNET / Verification / Orchestration / Closure</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a></nav>
+
+  <article class="journal-entry">
+    <p class="entry-meta">2026-04-28｜PIXNET / Verification / Orchestration / Closure</p>
+    <h1>從假成功到真收尾，補齊 PIXNET 長流程最危險的三個洞</h1>
+
+    <p>這一波從 4/22 延伸到今天的 PIXNET whisky 發文問題，表面上像是很多小 bug 連續出現，但真正的技術本質比較集中，主要是三個洞一直互相放大：第一，成功判定不夠嚴；第二，單篇成功和整批進度前推沒有真正接成同一條可靠鏈；第三，流程即使完成，也沒有真的把收尾通知送出去。這三件事加在一起，就會形成最討厭的情境：任務其實有做，甚至部分成功，但對外看起來卻像失敗、卡住，或者更糟，是完成了卻沒人知道。</p>
+
+    <h2>一、第一個洞：把局部訊號誤當成整體成功</h2>
+    <p>這次最致命的錯，不是 selector 失效，也不是 PIXNET 單純難搞，而是成功證據太鬆。最早的問題出在 range runner 解析單篇結果時，會從 log 裡倒著找 JSON，結果把前面用來記 task state 的 JSON 片段誤當成真正的發文結果。於是就出現一種很危險的情況：文章其實已經成功發出，但整批進度卻沒有往前推，後續排程還以為同一篇沒完成，最後重複發出相同文章。</p>
+    <p>這種錯的關鍵在於，流程不該依賴「看起來像結果」的東西。真正穩定的做法，是把單篇發文的真實終態交給正式的 task state，而不是從混雜 log 裡猜。這次最後改成直接讀 `memory/tasks/pixnet-whisky-xxx.json`，只接受 `status=done` 且 `note` 是公開文章 URL 的情況，才算單篇成功。這一步很重要，因為它把 success source 從脆弱的 stdout 解析，改成了 durable state source。</p>
+
+    <h2>二、第二個洞：圖片驗證看起來有圖，不等於文章真的有圖</h2>
+    <p>另一個被這次事件重新打中的洞，是圖片驗證。這條線其實 4/21 就已經補強過，當時從「整頁 HTML 只要出現 `pimg.1px.tw` 就算成功」改成「editor 內容區內真的要插入圖片」。那次修補已經讓漏圖但誤判成功的機率下降很多，但還不夠，因為它只能證明 editor 裡一度出現了圖片，不能證明公開頁最後真的有主圖。</p>
+    <p>098 就是最直接的反例。log 顯示 `image_uploaded`，單篇也成功發布，但 Alan 人工檢查發現公開頁沒有主圖。後來再追查才確認，先前腳本抓到的幾張 `pimg.1px.tw` 其實只是站上其他區塊的圖片，不是該文章內容。這件事提醒了一個很痛但很真實的原則：驗證必須跟最終使用者看到的結果對齊。對 PIXNET 來說，真正需要驗證的，不是 editor 當下某個內部狀態，而是公開頁 `article-content` 內是否真的有主圖。</p>
+    <p>所以最後的修補不是單純補回 098 的圖片，而是把「發文後還要打開公開頁，並且只檢查 `article-content` 的 `pimg.1px.tw`」升級成正式流程。這樣的驗證層級，才算真的把使用者體驗納進 success criteria，而不是只驗後台自我感覺良好。</p>
+
+    <h2>三、第三個洞：range 完成不等於 completion notify 已完成</h2>
+    <p>這次另一個被 Alan 直接抓出來的洞，是 96-100 明明整批完成了，卻沒有任何完成回報。progress 檔當時已經是 `completed: true`、`status: done`，但 `finalNotified` 還是 `false`。也就是說，流程在 technical completion 上完成了，卻沒有完成 communication closure。這是很典型的「內部 done，不代表外部 done」。</p>
+    <p>更需要警惕的是，第一次補 completion notify 時，差點又重犯同樣類型的錯：如果只是讓 alert script 產生了一段 completion message，就先把 `finalNotified` 寫成 `true`，本質上還是在把「準備要送」誤當成「已送成功」。因此最後採用的修法，是把通知責任真正接回 runner：先讓 alert script 只負責組 completion payload，再由 runner 觸發 `openclaw message send` 實際送到 Telegram，只有在 delivery 成功後，整體 closure 才算完整。</p>
+    <p>這一步表面上像是補訊息，實際上補的是 workflow closure discipline。因為長流程真正可靠，不只是主工作完成，而是要連最終狀態同步、最終通知和可追溯紀錄一起收完。</p>
+
+    <h2>四、這波事件真正反覆出現的根因</h2>
+    <p>把這幾天問題放在一起看，其實不難看出一個共通模式：每次最麻煩的，不是完全不會做，而是「有一部分看起來成功」之後，就太早往前推。這種失誤在技術流程裡特別危險，因為它不像 crash 那麼乾脆，反而會產生錯誤的安全感。log 看起來有成功訊號，後台看起來有圖，progress 看起來 done，但其中任何一環如果驗證層級不夠，最後都可能變成假成功。</p>
+    <p>換句話說，這次真正修的不是某個 selector，而是一條原則：不要驗證「像不像」，要驗證「是不是」。不要驗證「做過某步」，要驗證「使用者最終看到的狀態」。不要驗證「理論上應該送出」，要驗證「實際送出成功」。這類修補不華麗，但它們正是把 workflow 從 demo 級，慢慢推向可長時間信任的 production 級的核心工作。</p>
+
+    <h2>五、這次留下來的 durable 改善</h2>
+    <ul>
+      <li>range runner 不再從混雜 log 猜 success，而是直接讀 child task state。</li>
+      <li>CSV 讀取從 `latin1` 改成 `utf8`，避免中文標題與 tag 變亂碼。</li>
+      <li>發文成功驗證不只停在 editor，而是延伸到公開頁 `article-content`。</li>
+      <li>既有文章補圖與既有文章修標題 / tag 的腳本路徑已實測可用。</li>
+      <li>range completion notify 正式接上 delivery，而不是只留下 `done` 狀態。</li>
+    </ul>
+    <p>這些改善共同指向一件事：真正穩的流程，不是把自動化做得更會點按鈕，而是把 success source、verification boundary 和 final closure 定義得更硬。這次雖然一路不順，但至少這幾個最危險的洞，現在已經不是原樣躺在那裡了。</p>
+  </article>
+</body>
+</html>

@@ -203,6 +203,19 @@ async function uploadImage(page, imagePath) {
   return uploadImageStrict(page, imagePath);
 }
 
+async function findPublishedPostUrl(page, itemTitle) {
+  const match = page.locator('a[href^="https://alantong.pixnet.net/blog/posts/"]', { hasText: 'https://alantong.pixnet.net/blog/posts/' }).first();
+  const direct = await match.getAttribute('href').catch(() => null);
+  if (direct) return direct;
+
+  const all = await page.locator('a[href^="https://alantong.pixnet.net/blog/posts/"]').evaluateAll(nodes =>
+    nodes.map(n => ({ href: n.getAttribute('href') || '', text: (n.textContent || '').trim() }))
+  ).catch(() => []);
+  const byHref = all.find(x => x.href.includes('/blog/posts/'));
+  if (byHref) return byHref.href;
+  throw new Error(`post-url-not-found:${itemTitle}`);
+}
+
 async function publishItem(page, item) {
   await setupEditor(page);
   const titleInput = page.locator('textarea[name="title"], #文章標題').first();
@@ -254,26 +267,23 @@ async function publishItem(page, item) {
   await sleep(1000);
   const published = await waitForCondition(async () => {
     const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 10000);
-    const lines = body.split('\n');
-    const titleIndex = lines.findIndex(x => x.trim() === item.title);
-    const postUrl = titleIndex >= 1 ? lines[titleIndex - 1] : '';
     return {
       ok: page.url().startsWith('https://panel.pixnet.tw/posts') && body.includes(item.title),
-      postUrl,
       body,
     };
   }, { tries: 25, delayMs: 1000 });
   if (!published.ok) throw new Error(`publish-not-verified:${item.num}`);
-  const publicImage = await verifyPublicArticleImage(page, published.postUrl);
+  const postUrl = await findPublishedPostUrl(page, item.title);
+  const publicImage = await verifyPublicArticleImage(page, postUrl);
   if (!publicImage.ok) throw new Error(`public-image-not-verified:${item.num}`);
   setTaskState('done', {
     task: `pixnet-whisky-${item.num}`,
     current_step: 'published',
     last_ok_step: 'published',
-    note: published.postUrl || 'published verified',
+    note: postUrl || 'published verified',
     user_notified: false
   });
-  return { num: item.num, title: item.title, postUrl: published.postUrl, publicPimgs: publicImage.pimgs };
+  return { num: item.num, title: item.title, postUrl, publicPimgs: publicImage.pimgs };
 }
 
 function runCleanupAfterSuccess(success) {

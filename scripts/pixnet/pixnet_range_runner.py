@@ -69,9 +69,9 @@ def ensure_progress_defaults(progress: dict):
     return progress
 
 
-def send_completion_notice(progress_path: Path, progress: dict):
+def send_completion_notice(progress_path: Path, progress: dict, task_state_file: Path, task_name: str):
     if progress.get('finalNotified'):
-        return
+        return progress
     alert_script = ROOT / 'scripts' / 'pixnet' / 'pixnet_range_alert.py'
     proc = subprocess.run(
         ['python3', str(alert_script), str(progress_path), ROOT_SESSION_KEY],
@@ -82,7 +82,7 @@ def send_completion_notice(progress_path: Path, progress: dict):
     )
     payload = json.loads(proc.stdout.strip()) if proc.stdout.strip() else None
     if not payload:
-        return
+        return progress
     subprocess.run(
         ['openclaw', 'message', 'send', '--channel', 'telegram', '--target', payload['target'], '--message', payload['message']],
         check=True,
@@ -90,6 +90,12 @@ def send_completion_notice(progress_path: Path, progress: dict):
         stderr=subprocess.PIPE,
         text=True,
     )
+    refreshed = read_json(progress_path)
+    refreshed['finalNotified'] = True
+    refreshed['updatedAt'] = now_iso_utc()
+    write_json(progress_path, refreshed)
+    update_task_state(task_state_file, 'done', task=task_name, alert_scope='owner', current_step='range_complete', last_ok_step='range_complete', note=refreshed.get('lastPublishedUrl') or 'range complete', user_notified=True)
+    return refreshed
 
 
 def main():
@@ -110,7 +116,7 @@ def main():
         progress['updatedAt'] = now_iso_utc()
         write_json(progress_path, progress)
         update_task_state(task_state_file, 'done', task=task_name, alert_scope='owner', current_step='range_complete', last_ok_step='range_complete', note='range already complete', user_notified=progress.get('finalNotified', False))
-        send_completion_notice(progress_path, progress)
+        progress = send_completion_notice(progress_path, progress, task_state_file, task_name)
         return
 
     next_id = int(progress['nextId'])
@@ -145,7 +151,7 @@ def main():
         write_json(progress_path, progress)
         update_task_state(task_state_file, 'done' if progress['completed'] else 'running', task=task_name, alert_scope='owner', current_step='range_complete' if progress['completed'] else 'published_one', last_ok_step=f'published_{next_id:03d}', note=post_url or range_note, user_notified=progress.get('finalNotified', False))
         if progress['completed']:
-            send_completion_notice(progress_path, progress)
+            progress = send_completion_notice(progress_path, progress, task_state_file, task_name)
         return
 
     progress['failureCount'] = int(progress.get('failureCount', 0)) + 1

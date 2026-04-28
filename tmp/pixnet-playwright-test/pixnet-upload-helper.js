@@ -71,4 +71,32 @@ async function uploadImageStrict(page, imagePath) {
   return uploaded;
 }
 
-module.exports = { uploadImageStrict, waitForCondition };
+async function verifyPublicArticleImage(page, publicUrl) {
+  await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await new Promise(resolve => setTimeout(resolve, 4000));
+  return await page.evaluate(() => {
+    const candidates = [
+      '.article-content',
+      '.article-content-inner',
+      '.pixnet-article-content',
+      'article',
+      '.post-body',
+      '.entry-content',
+      '.content'
+    ];
+    let root = null;
+    for (const sel of candidates) {
+      const el = document.querySelector(sel);
+      if (el && (el.innerText || '').length > 20) { root = el; break; }
+    }
+    const scope = root || document.body;
+    const pimgs = [...scope.querySelectorAll('img')].map(i => i.src).filter(s => s.includes('pimg.1px.tw'));
+    return {
+      ok: pimgs.length > 0,
+      rootClass: root ? root.className : null,
+      pimgs,
+    };
+  });
+}
+
+module.exports = { uploadImageStrict, verifyPublicArticleImage, waitForCondition };

@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
-const { uploadImageStrict, waitForCondition } = require('./pixnet-upload-helper');
+const { uploadImageStrict, verifyPublicArticleImage, waitForCondition } = require('./pixnet-upload-helper');
 
 const rawId = process.argv[2];
 if (!rawId) {
@@ -264,6 +264,8 @@ async function publishItem(page, item) {
     };
   }, { tries: 25, delayMs: 1000 });
   if (!published.ok) throw new Error(`publish-not-verified:${item.num}`);
+  const publicImage = await verifyPublicArticleImage(page, published.postUrl);
+  if (!publicImage.ok) throw new Error(`public-image-not-verified:${item.num}`);
   setTaskState('done', {
     task: `pixnet-whisky-${item.num}`,
     current_step: 'published',
@@ -271,7 +273,7 @@ async function publishItem(page, item) {
     note: published.postUrl || 'published verified',
     user_notified: false
   });
-  return { num: item.num, title: item.title, postUrl: published.postUrl };
+  return { num: item.num, title: item.title, postUrl: published.postUrl, publicPimgs: publicImage.pimgs };
 }
 
 function runCleanupAfterSuccess(success) {

@@ -91,7 +91,12 @@ bash /home/alantong/ai-work/scripts/run_weekly_backup_and_report.sh
 bash /home/alantong/ai-work/scripts/mark_backup_pending.sh
 ```
 
-### 收到 Telegram 的 `OK` 後處理 backup
+### 收到 Telegram 的 `OK` 或 `NOVEL OK` 後處理待核准流程
+```bash
+bash /home/alantong/ai-work/scripts/handle_pending_ok.sh
+```
+
+如果只想單獨處理 backup，也可直接用：
 ```bash
 bash /home/alantong/ai-work/scripts/handle_backup_ok.sh
 ```

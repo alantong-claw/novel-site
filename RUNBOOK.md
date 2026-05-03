@@ -183,6 +183,21 @@ Unacceptable terminal states include:
 - Future 檢討 documents should meet the quality bar established on 2026-04-06: formal incident-style document, detailed event description, evidence timeline, root cause analysis, corrective and preventive actions, clear validation logic, and a substantial technical section.
 - When appropriate, prefer a company-style format with document control, table of contents, document history, CAPA summary, and appendix or evidence references.
 
+## OK / NOVEL OK Routing Rule
+
+- When Alan replies `OK` or `NOVEL OK` in a context that plausibly refers to a pending approval-driven flow, do not leave the acknowledgment as plain chat.
+- First verify whether there is an active OK-driven pending state, especially:
+  - `memory/backup-pending.json`
+  - `memory/novel-progress.json`
+- Default execution entrypoint for approval-driven local flows:
+  - `bash /home/alantong/ai-work/scripts/handle_pending_ok.sh`
+- This dispatcher is the preferred bridge for short approval replies because it can safely route to:
+  - `scripts/handle_backup_ok.sh`
+  - `scripts/handle_weekly_novel_ok.sh`
+- If `NOVEL OK` is explicitly stated, still prefer the dispatcher first unless there is a verified reason to bypass it.
+- After invoking the dispatcher, verify the resulting state file or output before telling Alan the flow started or completed.
+- Do not rely on memory or conversational inference alone for OK-driven flows. Use the dispatcher or the specific handler script.
+
 ## Special Workflow Standards
 
 ### Whisky Photo Workflow

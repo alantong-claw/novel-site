@@ -42,6 +42,11 @@ if [[ ! -f "$review_file" ]]; then
   exit 1
 fi
 
+if grep -q '（待撰寫）' "$review_file" || grep -q '^第[0-9]\+章：待定$' "$review_file"; then
+  echo "Draft is still placeholder content and cannot be published: $review_file"
+  exit 1
+fi
+
 python3 - "$review_file" "$chapter_path" "$NOVEL_DIR/novel.html" "$chapter_num" <<'PY'
 import re, sys
 from pathlib import Path

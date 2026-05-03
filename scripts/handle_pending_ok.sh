@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "handle_pending_ok.sh is deprecated for normal approvals. Use a specific handler instead:" >&2
+echo "  backup: bash /home/alantong/ai-work/scripts/handle_backup_ok.sh" >&2
+echo "  novel:  bash /home/alantong/ai-work/scripts/handle_weekly_novel_ok.sh" >&2
+echo "This fallback will only act when exactly one eligible flow is pending." >&2
+
 ROOT="/home/alantong/ai-work"
 BACKUP_PENDING="$ROOT/memory/backup-pending.json"
 NOVEL_STATE="$ROOT/memory/novel-progress.json"
@@ -36,41 +41,38 @@ PY
 )"
 fi
 
-did_something=0
-had_success=0
-had_failure=0
+backup_eligible=0
+novel_eligible=0
 
 if [[ "$backup_status" == "pending" || "$backup_status" == "started" ]]; then
-  if bash "$ROOT/scripts/handle_backup_ok.sh"; then
-    had_success=1
-  else
-    had_failure=1
-  fi
-  did_something=1
+  backup_eligible=1
 fi
 
 if [[ "$novel_status" == "awaiting_ok" || "$novel_status" == "awaiting_novel_ok" || "$novel_status" == "draft_placeholder_ready" ]]; then
-  if bash "$ROOT/scripts/handle_weekly_novel_ok.sh"; then
-    had_success=1
-  else
-    had_failure=1
-  fi
-  did_something=1
+  novel_eligible=1
 fi
 
-if [[ "$did_something" != "1" ]]; then
+eligible_count=$((backup_eligible + novel_eligible))
+
+if [[ "$eligible_count" == "0" ]]; then
   echo "No pending OK-driven flow found."
   exit 1
 fi
 
-if [[ "$had_success" == "1" ]]; then
-  echo "Handled pending OK-driven flows."
-  exit 0
+if [[ "$eligible_count" != "1" ]]; then
+  echo "Ambiguous OK-driven flow: backup_eligible=$backup_eligible novel_eligible=$novel_eligible" >&2
+  exit 2
 fi
 
-if [[ "$had_failure" == "1" ]]; then
-  echo "Found OK-driven flows, but none completed successfully."
-  exit 1
+if [[ "$backup_eligible" == "1" ]]; then
+  bash "$ROOT/scripts/handle_backup_ok.sh"
+  exit $?
 fi
 
-echo "Handled pending OK-driven flows."
+if [[ "$novel_eligible" == "1" ]]; then
+  bash "$ROOT/scripts/handle_weekly_novel_ok.sh"
+  exit $?
+fi
+
+echo "No pending OK-driven flow found."
+exit 1

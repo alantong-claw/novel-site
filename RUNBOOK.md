@@ -186,17 +186,17 @@ Unacceptable terminal states include:
 ## OK / NOVEL OK Routing Rule
 
 - When Alan replies `OK` or `NOVEL OK` in a context that plausibly refers to a pending approval-driven flow, do not leave the acknowledgment as plain chat.
-- First verify whether there is an active OK-driven pending state, especially:
-  - `memory/backup-pending.json`
-  - `memory/novel-progress.json`
-- Default execution entrypoint for approval-driven local flows:
-  - `bash /home/alantong/ai-work/scripts/handle_pending_ok.sh`
-- This dispatcher is the preferred bridge for short approval replies because it can safely route to:
-  - `scripts/handle_backup_ok.sh`
-  - `scripts/handle_weekly_novel_ok.sh`
-- If `NOVEL OK` is explicitly stated, still prefer the dispatcher first unless there is a verified reason to bypass it.
-- After invoking the dispatcher, verify the resulting state file or output before telling Alan the flow started or completed.
-- Do not rely on memory or conversational inference alone for OK-driven flows. Use the dispatcher or the specific handler script.
+- Backup and novel approvals must be treated as **independent flows**.
+- Default routing rule:
+  - plain `OK` for backup context → `bash /home/alantong/ai-work/scripts/handle_backup_ok.sh`
+  - explicit `NOVEL OK` or clear novel approval context → `bash /home/alantong/ai-work/scripts/handle_weekly_novel_ok.sh`
+- Before choosing a handler, verify the relevant state file:
+  - backup → `memory/backup-pending.json`
+  - novel → `memory/novel-progress.json`
+- Do not use a shared dispatcher as the normal path for user approvals when multiple flow types may be pending at once.
+- `scripts/handle_pending_ok.sh` is fallback-only for manual debugging and must refuse ambiguous cases.
+- After invoking a specific handler, verify the resulting state file or output before telling Alan the flow started or completed.
+- Do not rely on memory or conversational inference alone for OK-driven flows. Use the specific handler script that matches the verified context.
 
 ## Special Workflow Standards
 

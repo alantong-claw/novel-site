@@ -6,6 +6,7 @@ PENDING_FILE="$ROOT/memory/backup-pending.json"
 TODAY="$(TZ=Asia/Taipei date +%F)"
 TS="$(TZ=Asia/Taipei date '+%Y-%m-%dT%H:%M:%S%z')"
 PENDING_DATE="$(grep -o '"date":"[^"]*"' "$PENDING_FILE" 2>/dev/null | head -n 1 | cut -d'"' -f4 || true)"
+STATE_FILE="$ROOT/memory/backup-state.json"
 
 if [[ ! -f "$PENDING_FILE" ]]; then
   echo "No pending backup request."
@@ -19,6 +20,12 @@ fi
 
 if [[ -z "$PENDING_DATE" ]]; then
   echo "Pending backup request has no date."
+  exit 0
+fi
+
+if [[ -f "$STATE_FILE" ]] && grep -q '"status":"running"' "$STATE_FILE"; then
+  echo "Backup already running."
+  printf '{"status":"started","date":"%s","started_at":"%s"}\n' "$TODAY" "$TS" > "$PENDING_FILE"
   exit 0
 fi
 

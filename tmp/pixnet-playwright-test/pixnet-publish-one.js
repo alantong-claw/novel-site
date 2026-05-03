@@ -368,10 +368,10 @@ function runCleanupAfterSuccess(success) {
         }
 
         try {
-          await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
-          await sleep(1000);
+          await page.goto('about:blank', { waitUntil: 'domcontentloaded' }).catch(() => {});
+          await sleep(1200);
           await page.context().clearCookies();
-          await sleep(500);
+          await sleep(800);
         } catch {}
       }
     }

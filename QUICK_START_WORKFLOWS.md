@@ -29,6 +29,19 @@ set -a && source /home/alantong/ai-work/.secrets/mail.env
 
 ---
 
+## Pixnet
+
+正式 Pixnet workflow 腳本位置：
+`/home/alantong/ai-work/scripts/pixnet/`
+
+執行期資料位置：
+`/home/alantong/ai-work/work_tmp/pixnet-playwright-test/`
+
+臨時 debug / diagnose 腳本位置：
+`/home/alantong/ai-work/tmp/pixnet-playwright-test/`
+
+---
+
 ## 2. Excel：報表 → 寄信
 
 ### Edge AI + TV 控制 + OpenClaw（Excel 報表）

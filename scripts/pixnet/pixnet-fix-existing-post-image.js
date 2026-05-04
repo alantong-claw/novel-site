@@ -1,0 +1,54 @@
+const { chromium } = require('playwright');
+const path = require('path');
+const pixnetPaths = require('/home/alantong/ai-work/scripts/pixnet_paths');
+const { uploadImageStrict, waitForCondition } = require('./pixnet-upload-helper');
+const { openExistingPostEditor, sleep } = require('./pixnet-edit-helper');
+
+const postId = process.argv[2];
+const expectedTitle = process.argv[3];
+const imagePath = process.argv[4];
+const publicUrl = process.argv[5];
+
+if (!postId || !expectedTitle || !imagePath || !publicUrl) {
+  console.error('usage: node pixnet-fix-existing-post-image.js <postId> <expectedTitle> <imagePath> <publicUrl>');
+  process.exit(1);
+}
+
+const postUrl = `https://panel.pixnet.tw/posts/${postId}`;
+
+(async () => {
+  const userDataDir = pixnetPaths.userDataDir;
+  const context = await chromium.launchPersistentContext(userDataDir, {
+    headless: false,
+    executablePath: '/snap/bin/chromium',
+    env: { ...process.env, XDG_RUNTIME_DIR: '/run/user/1000', WAYLAND_DISPLAY: 'wayland-0', DISPLAY: ':0' },
+    args: ['--no-sandbox'],
+    viewport: { width: 1400, height: 960 },
+  });
+  try {
+    const page = context.pages()[0] || await context.newPage();
+    await openExistingPostEditor(page, postUrl, { expectedTitle });
+
+    await uploadImageStrict(page, imagePath);
+    await sleep(1000);
+
+    await page.getByText('發布', { exact: true }).first().click();
+    await sleep(1000);
+    const published = await waitForCondition(async () => {
+      const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 12000);
+      return { ok: page.url().startsWith('https://panel.pixnet.tw/posts') && body.includes(expectedTitle) };
+    }, { tries: 25, delayMs: 1000 });
+    if (!published.ok) throw new Error('republish-not-verified');
+
+    await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await sleep(3000);
+    const check = await page.evaluate(() => {
+      const imgs = Array.from(document.querySelectorAll('img')).map(img => img.getAttribute('src') || '');
+      return { pimgCount: imgs.filter(src => src.includes('pimg.1px.tw')).length, imgs };
+    });
+    if ((check.pimgCount || 0) < 1) throw new Error(`public-image-not-found:${check.pimgCount || 0}`);
+    console.log(JSON.stringify({ success: true, publicUrl, ...check }, null, 2));
+  } finally {
+    await context.close();
+  }
+})();

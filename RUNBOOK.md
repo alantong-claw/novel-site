@@ -6,6 +6,9 @@
 - Task-generated files must go under `/home/alantong/ai-work/work_tmp/` by default, not the workspace root and not mixed into skill, markdown, or source-code directories unless the file is itself a durable source artifact.
 - Use `/home/alantong/ai-work/work_tmp/tasks/<task-name>/` for per-task outputs, `/home/alantong/ai-work/work_tmp/shared/` for reusable generated artifacts, and `/home/alantong/ai-work/work_tmp/logs/` for task logs.
 - Scratch scripts, one-off images, captcha files, OCR outputs, and ad hoc logs should also be kept under `/home/alantong/ai-work/work_tmp/` instead of the workspace root.
+- Long-lived Pixnet automation scripts belong under `/home/alantong/ai-work/scripts/pixnet/`.
+- Pixnet browser profiles, controller state, temporary batch JSON, and runtime artifacts belong under `/home/alantong/ai-work/work_tmp/pixnet-playwright-test/`.
+- `tmp/pixnet-playwright-test/` is reserved for debug, diagnose, and one-off recovery scripts.
 - If an older workflow still hardcodes `tmp/...` paths, do not blindly move it. First isolate its path selection behind one helper or env var, then migrate.
 - Never present unchecked information as fact. For date, time, schedule state, completion state, file state, git state, counts, versions, and other verifiable facts, verify first whenever tools or files can confirm it.
 - After any factual mistake that could reduce trust, perform an explicit review of failure mode, root cause, containment, and preventive rule updates. Strengthen durable instructions instead of relying on intention alone.

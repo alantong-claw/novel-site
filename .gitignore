@@ -16,6 +16,14 @@ __pycache__/
 
 # Browser automation profiles and caches
 tmp/pixnet-playwright-test/pixnet-user-data/
+tmp/pixnet-playwright-test/controller-status.json
+tmp/pixnet-playwright-test/controller-command.json
+work_tmp/pixnet-playwright-test/pixnet-user-data/
+work_tmp/pixnet-playwright-test/profile-archive/
+work_tmp/pixnet-playwright-test/controller-status.json
+work_tmp/pixnet-playwright-test/controller-command.json
+work_tmp/pixnet-playwright-test/*.json
+work_tmp/pixnet-playwright-test/node_modules/
 
 # Generated scratch/output areas
 slides/generated/

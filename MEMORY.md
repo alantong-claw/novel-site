@@ -19,6 +19,7 @@
 - **Sensitive actions**: only for the primary paired user.
 - **No recursive subagents**.
 - **If Alan says "OK" on save/publish flows**: complete `git add`, `git commit`, and `git push` automatically.
+- **For `novel_site` publishing**: after committing article/journal/chapter updates, push the `novel_site` repo immediately so the website reflects the change, then commit any outer workspace submodule pointer if needed.
 
 ## Rule Index
 

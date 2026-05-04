@@ -20,7 +20,7 @@
 ## Git and Publish Preferences
 
 - When asked to publish or save work, if Alan confirms with "OK", proceed automatically with `git add`, `git commit`, and `git push` without asking him to run manual terminal commands.
-- For growth journal entries and technical articles in `novel_site`, do not pause to ask whether to push and do not split publish into separate confirmation steps. After updating and committing, push to GitHub directly by default.
+- For growth journal entries, technical articles, and chapter publishes in `novel_site`, do not pause to ask whether to push and do not split publish into separate confirmation steps. After updating and committing, push the `novel_site` repo to GitHub directly by default so the website can reflect the change, then update the outer workspace submodule pointer when applicable.
 
 ## Research Workflow
 

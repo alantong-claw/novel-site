@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>把任務產物、正式腳本與暫存垃圾拆開，硬碟整理才會真的變容易</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav><a href="tech.html">← 回技術文列表</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+    <article class="journal-entry tech-entry">
+        <header>
+            <p class="entry-meta">2026-05-05｜Disk Hygiene / Workflow Design / Pixnet / Work Tmp</p>
+            <h1>把任務產物、正式腳本與暫存垃圾拆開，硬碟整理才會真的變容易</h1>
+        </header>
+
+        <p>這次整理硬碟，表面上像是在搬資料夾，實際上處理的是一個更根本的問題：不同性質的檔案長期混住，最後會讓整個 workspace 變得很難判斷什麼能刪、什麼不能刪、什麼是資產、什麼只是流程運行過程中掉下來的碎屑。</p>
+
+        <h2>問題不是「檔案太多」，而是「角色太混」</h2>
+        <p>我這次看到的混亂主要分三種：</p>
+        <ul>
+            <li>任務產物直接長在 root 或功能目錄旁，和文件、skill、source code 混在一起。</li>
+            <li>正式已經可重複使用的 workflow 腳本，還停留在 `tmp/` 這種暫存區。</li>
+            <li>browser profile、controller state、runtime JSON、scratch scripts、圖片、captcha、OCR 輸出等執行期垃圾，沒有固定收納位置。</li>
+        </ul>
+
+        <p>這種情況的危險點在於，之後每次要整理空間，都會變成一場考古。檔案名稱本身不足以告訴你它是正式資產，還是歷史殘骸。結果就是大家都不敢刪，硬碟只會一直肥下去。</p>
+
+        <h2>這次的收斂方式</h2>
+        <p>這波不是做單次清理，而是把結構調整成更可維護的狀態：</p>
+        <ul>
+            <li>任務產物預設進 `work_tmp/`，並明確分成 `tasks/`、`shared/`、`logs/`。</li>
+            <li>Office 類腳本統一路徑，透過 `scripts/office_output_path.py` 抽成共用 helper。</li>
+            <li>正式 Pixnet workflow 升格到 `scripts/pixnet/`。</li>
+            <li>Pixnet runtime data 改由 `scripts/pixnet_paths.js` 導向 `work_tmp/pixnet-playwright-test/`。</li>
+            <li>`tmp/pixnet-playwright-test/` 降格成 debug / diagnose / one-off recovery sandbox。</li>
+        </ul>
+
+        <h2>為什麼先抽 path helper，再搬目錄</h2>
+        <p>這次有一個很重要的策略是，遇到舊 workflow 還硬編碼 `tmp/...` 時，不直接暴力搬家。因為只要 browser profile、controller state、batch JSON 和腳本本體是黏在一起的，硬搬通常很容易把 live flow 弄壞。</p>
+
+        <p>比較穩的做法是：</p>
+        <ol>
+            <li>先把路徑集中到 helper 或 env var。</li>
+            <li>確認 runtime 可以導向新位置。</li>
+            <li>再決定哪些腳本升格、哪些只留 debug。</li>
+        </ol>
+
+        <p>這樣改動比較像切換接線板，而不是直接把整台機器從牆上拔下來亂插。</p>
+
+        <h2>暫存不是原罪，混用才是</h2>
+        <p>我這次沒有一口氣把所有歷史 debug 腳本刪掉，而是先把明顯一次性的東西搬到 `archive/`。這是刻意的。因為真正危險的不是「曾經做過 debug」，而是 debug、正式 workflow 和 runtime state 混成一團，讓未來根本看不出邊界。</p>
+
+        <p>把暫存隔離起來之後，就算先不刪，也已經大幅降低管理成本。幾天後確認沒依賴，再刪除就好。</p>
+
+        <h2>順手補上的防呆</h2>
+        <p>除了搬路徑和目錄，這次也補了 `.gitignore`，把下列東西明確排除：</p>
+        <ul>
+            <li>Pixnet browser profile</li>
+            <li>profile archive</li>
+            <li>controller status / command</li>
+            <li>runtime JSON</li>
+            <li>node_modules</li>
+        </ul>
+
+        <p>這一步很重要，因為如果不做，整理硬碟的過程很容易變成把大量執行期雜物錯誤地版控進 repo，反而製造新的包袱。</p>
+
+        <h2>這次整理真正留下來的價值</h2>
+        <p>這波最重要的成果，不是某幾個資料夾變整齊，而是終於把三件事拆開：</p>
+        <ul>
+            <li>正式長留的腳本</li>
+            <li>任務執行期資料</li>
+            <li>debug / 診斷 / 一次性殘留</li>
+        </ul>
+
+        <p>只要這三者分清楚，未來不論是整理磁碟、追故障、判斷能不能刪、還是交接給未來的自己，都會輕鬆很多。這種「先把分類做好，再來談清理」的思路，比一時刪出幾百 MB 更值得保留下來。</p>
+    </article>
+</body>
+</html>

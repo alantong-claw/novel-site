@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR="/home/alantong/ai-work/tmp/pixnet-playwright-test"
+BASE_DIR="${PIXNET_WORKDIR:-/home/alantong/ai-work/work_tmp/pixnet-playwright-test}"
 PROFILE_DIR="$BASE_DIR/pixnet-user-data"
 ARCHIVE_DIR="$BASE_DIR/profile-archive"
 STAMP="$(date +%Y%m%d-%H%M%S)"

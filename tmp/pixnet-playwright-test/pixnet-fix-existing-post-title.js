@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const path = require('path');
+const pixnetPaths = require('/home/alantong/ai-work/scripts/pixnet_paths');
 const { waitForCondition } = require('./pixnet-upload-helper');
 const { openExistingPostEditor, sleep } = require('./pixnet-edit-helper');
 
@@ -16,7 +17,7 @@ if (!postId || !currentTitle || !desiredTitle || !publicUrl) {
 const postUrl = `https://panel.pixnet.tw/posts/${postId}`;
 
 (async () => {
-  const userDataDir = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'pixnet-user-data');
+  const userDataDir = pixnetPaths.userDataDir;
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless: false,
     executablePath: '/snap/bin/chromium',

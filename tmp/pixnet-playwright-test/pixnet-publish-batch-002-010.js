@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const path = require('path');
+const pixnetPaths = require('/home/alantong/ai-work/scripts/pixnet_paths');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 
@@ -205,7 +206,7 @@ function runCleanupAfterSuccess(success) {
 (async () => {
   const items = [];
   for (let i = 2; i <= 10; i++) items.push(buildSpec(String(i).padStart(3, '0')));
-  const userDataDir = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'pixnet-user-data');
+  const userDataDir = pixnetPaths.userDataDir;
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless: false,
     executablePath: '/snap/bin/chromium',

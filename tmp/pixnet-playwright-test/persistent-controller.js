@@ -1,13 +1,81 @@
 const { chromium } = require('playwright');
 const path = require('path');
+const pixnetPaths = require('/home/alantong/ai-work/scripts/pixnet_paths');
 const fs = require('fs');
 
-const userDataDir = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'pixnet-user-data');
-const statusFile = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'controller-status.json');
-const commandFile = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'controller-command.json');
+const userDataDir = pixnetPaths.userDataDir;
+const statusFile = pixnetPaths.statusFile;
+const commandFile = pixnetPaths.commandFile;
 
 function writeStatus(data) {
   fs.writeFileSync(statusFile, JSON.stringify({ ts: new Date().toISOString(), ...data }, null, 2));
+}
+
+async function pause(page, ms = 1000) {
+  await page.waitForTimeout(ms);
+}
+
+async function enterPixnetEditor(page) {
+  if (/\/posts\/create(?:\?.*)?$/.test(page.url())) {
+    const startButton = page.getByRole('button', { name: /開始寫文章/ }).first();
+    if (await startButton.count()) {
+      await startButton.scrollIntoViewIfNeeded();
+      await pause(page, 1000);
+      await startButton.click({ timeout: 10000 });
+      await pause(page, 1800);
+    }
+  }
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+  await pause(page, 1000);
+}
+
+async function openPixnetFieldButton(page, label) {
+  const byLabelFor = page.locator(`xpath=//label[normalize-space(.)="${label}"]/following-sibling::button | //label[normalize-space(.)="${label}"]/parent::*//button[(@role="combobox" or @data-slot="popover-trigger")][1]`).first();
+  const fallback = page.locator(`xpath=//div[normalize-space(.)="${label}"]/ancestor::div[contains(@class,"group/field") or contains(@class,"group/field-label")][1]//button[(@role="combobox" or @data-slot="popover-trigger")][1]`).first();
+  const button = await byLabelFor.count() ? byLabelFor : fallback;
+  await button.scrollIntoViewIfNeeded();
+  await pause(page, 1000);
+  await button.click({ timeout: 10000 });
+  await pause(page, 1000);
+  return button;
+}
+
+async function findVisibleSearchInput(page) {
+  const input = page.locator('input[placeholder*="搜尋"]').filter({ hasNot: page.locator('[aria-hidden="true"]') }).last();
+  await input.waitFor({ state: 'visible', timeout: 3000 });
+  return input;
+}
+
+async function clickVisibleOption(page, text) {
+  const option = page.locator([
+    `[role="option"]:has-text("${text}")`,
+    `[cmdk-item]:has-text("${text}")`,
+    `button:has-text("${text}")`,
+    `div:has-text("${text}")`,
+    `span:has-text("${text}")`
+  ].join(', ')).filter({ hasNot: page.locator('[aria-hidden="true"]') }).last();
+  await option.waitFor({ state: 'visible', timeout: 5000 });
+  await pause(page, 1000);
+  await option.click({ timeout: 5000 });
+  await pause(page, 1200);
+}
+
+async function setPixnetDropdown(page, { label, value, searchable = false }) {
+  await openPixnetFieldButton(page, label);
+  if (searchable) {
+    const input = await findVisibleSearchInput(page);
+    await input.fill('');
+    await pause(page, 800);
+    await input.type(value, { delay: 80 });
+    await pause(page, 1200);
+  }
+  await clickVisibleOption(page, value);
+  const button = page.locator(`xpath=//label[normalize-space(.)="${label}"]/following-sibling::button | //label[normalize-space(.)="${label}"]/parent::*//button[(@role="combobox" or @data-slot="popover-trigger")][1]`).first();
+  const selectedText = (await button.innerText()).trim();
+  if (!selectedText.includes(value)) {
+    throw new Error(`Failed to set ${label} -> ${value}, got: ${selectedText}`);
+  }
+  return selectedText;
 }
 
 (async () => {
@@ -25,7 +93,9 @@ function writeStatus(data) {
   });
 
   const page = context.pages()[0] || await context.newPage();
-  await page.goto('https://account.pixnet.tw/login', { waitUntil: 'domcontentloaded' });
+  if (page.url() === 'about:blank') {
+    await page.goto('https://panel.pixnet.tw/posts', { waitUntil: 'domcontentloaded' });
+  }
   writeStatus({ state: 'ready', url: page.url(), title: await page.title() });
 
   let lastCommandRaw = '';
@@ -40,16 +110,19 @@ function writeStatus(data) {
 
       if (cmd.action === 'goto' && cmd.url) {
         await page.goto(cmd.url, { waitUntil: 'domcontentloaded' });
+        await pause(page, 1200);
         writeStatus({ state: 'navigated', url: page.url(), title: await page.title() });
       } else if (cmd.action === 'clickText' && cmd.text) {
         const target = page.getByText(cmd.text, { exact: !!cmd.exact }).first();
+        await pause(page, cmd.preWaitMs || 1000);
         await target.click({ timeout: cmd.timeout || 10000 });
-        await page.waitForTimeout(cmd.waitMs || 1500);
+        await pause(page, cmd.waitMs || 1500);
         writeStatus({ state: 'clicked', clickedText: cmd.text, url: page.url(), title: await page.title() });
       } else if (cmd.action === 'clickRole' && cmd.role && cmd.name) {
         const target = page.getByRole(cmd.role, { name: cmd.name, exact: !!cmd.exact }).first();
+        await pause(page, cmd.preWaitMs || 1000);
         await target.click({ timeout: cmd.timeout || 10000 });
-        await page.waitForTimeout(cmd.waitMs || 1500);
+        await pause(page, cmd.waitMs || 1500);
         writeStatus({ state: 'clicked', clickedRole: cmd.role, clickedName: cmd.name, url: page.url(), title: await page.title() });
       } else if (cmd.action === 'fill' && cmd.selector && typeof cmd.value === 'string') {
         await page.locator(cmd.selector).first().fill(cmd.value, { timeout: cmd.timeout || 10000 });
@@ -110,6 +183,27 @@ function writeStatus(data) {
         await page.keyboard.press('Enter');
         await page.waitForTimeout(cmd.waitMs || 1000);
         writeStatus({ state: 'tag-added', value: cmd.value, url: page.url(), title: await page.title() });
+      } else if (cmd.action === 'setPixnetDropdown' && cmd.label && typeof cmd.value === 'string') {
+        const selectedText = await setPixnetDropdown(page, {
+          label: cmd.label,
+          value: cmd.value,
+          searchable: !!cmd.searchable
+        });
+        writeStatus({ state: 'pixnet-dropdown-set', label: cmd.label, value: cmd.value, selectedText, url: page.url(), title: await page.title() });
+      } else if (cmd.action === 'setPixnetPostDefaults') {
+        await enterPixnetEditor(page);
+        const results = [];
+        for (const field of [
+          { label: '文章個人分類', value: 'Whisky', searchable: true },
+          { label: '文章全站分類 (主要)', value: '美味食記', searchable: true },
+          { label: '文章全站分類 (次要)', value: '生活綜合', searchable: true },
+          { label: '文章閱讀權限', value: '公開', searchable: false },
+          { label: '文章留言權限', value: '可留言，留言公開', searchable: false }
+        ]) {
+          const selectedText = await setPixnetDropdown(page, field);
+          results.push({ ...field, selectedText });
+        }
+        writeStatus({ state: 'pixnet-post-defaults-set', results, url: page.url(), title: await page.title() });
       } else if (cmd.action === 'inspectFrames') {
         const frameData = [];
         for (const frame of page.frames()) {

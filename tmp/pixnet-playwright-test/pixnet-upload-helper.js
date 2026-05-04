@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const pixnetPaths = require('/home/alantong/ai-work/scripts/pixnet_paths');
 
 async function waitForCondition(checkFn, { tries = 20, delayMs = 1000 } = {}) {
   let last = null;
@@ -36,7 +37,11 @@ async function uploadImageStrict(page, imagePath) {
 
   await new Promise(resolve => setTimeout(resolve, 500));
 
-  const beforeEditorImageCount = await page.locator('.jodit-wysiwyg img, .jodit-workplace img, .jodit-container img').count().catch(() => 0);
+  const beforeEditorImgs = await page.locator('.jodit-wysiwyg img, .jodit-workplace img, .jodit-container img').evaluateAll(nodes =>
+    nodes.map(n => ({ src: n.getAttribute('src') || '', outer: (n.outerHTML || '').slice(0, 300) }))
+  ).catch(() => []);
+  const beforeEditorImageCount = beforeEditorImgs.length;
+  const beforePimgSrcs = new Set(beforeEditorImgs.filter(x => x.src.includes('pimg.1px.tw')).map(x => x.src));
 
   const buffer = fs.readFileSync(imagePath);
   const base64 = buffer.toString('base64');
@@ -57,13 +62,13 @@ async function uploadImageStrict(page, imagePath) {
       nodes.map(n => ({ src: n.getAttribute('src') || '', outer: (n.outerHTML || '').slice(0, 300) }))
     ).catch(() => []);
     const pimgEditorImgs = editorImgs.filter(x => x.src.includes('pimg.1px.tw'));
-    const newPimgEditorImgs = pimgEditorImgs.slice(beforeEditorImageCount);
+    const newPimgEditorImgs = pimgEditorImgs.filter(x => !beforePimgSrcs.has(x.src));
     return {
       ok: pimgEditorImgs.length > 0 && editorImgs.length > beforeEditorImageCount,
       editorImageCount: editorImgs.length,
       pimgEditorImageCount: pimgEditorImgs.length,
       editorImgs,
-      newestPimgSrc: pimgEditorImgs.length ? pimgEditorImgs[pimgEditorImgs.length - 1].src : '',
+      newestPimgSrc: newPimgEditorImgs.length ? newPimgEditorImgs[0].src : '',
       newPimgEditorImgs,
     };
   }, { tries: 25, delayMs: 1000 });

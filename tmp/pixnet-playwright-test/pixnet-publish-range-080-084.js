@@ -155,7 +155,7 @@ async function publishItem(page, item) {
 }
 
 (async () => {
-  const items = [buildSpec(78), buildSpec(79)];
+  const items = [80, 81, 82, 83, 84].map(buildSpec);
   const userDataDir = pixnetPaths.userDataDir;
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless: false,

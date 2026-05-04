@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const path = require('path');
+const pixnetPaths = require('/home/alantong/ai-work/scripts/pixnet_paths');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 
@@ -187,10 +188,10 @@ function runCleanupAfterSuccess(success) {
 }
 
 (async () => {
-  const jsonPath = '/home/alantong/ai-work/tmp/pixnet-playwright-test/pixnet-batch-101-108.json';
+  const jsonPath = pixnetPaths.batchJson('pixnet-batch-101-108.json');
   const items = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   const targets = items.filter(x => ['101','102','103','104','105','106','107','108'].includes(x.num));
-  const userDataDir = path.join('/home/alantong/ai-work/tmp/pixnet-playwright-test', 'pixnet-user-data');
+  const userDataDir = pixnetPaths.userDataDir;
   const context = await chromium.launchPersistentContext(userDataDir, {
     headless: false,
     executablePath: '/snap/bin/chromium',

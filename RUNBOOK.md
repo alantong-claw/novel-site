@@ -3,6 +3,8 @@
 ## Core Execution Rules
 
 - Never claim a task is done, especially scheduled or automated work, without evidence from logs or state.
+- Task-generated files must go under `/home/alantong/ai-work/work_tmp/` by default, not the workspace root and not mixed into skill, markdown, or source-code directories unless the file is itself a durable source artifact.
+- Use `/home/alantong/ai-work/work_tmp/tasks/<task-name>/` for per-task outputs, `/home/alantong/ai-work/work_tmp/shared/` for reusable generated artifacts, and `/home/alantong/ai-work/work_tmp/logs/` for task logs.
 - Never present unchecked information as fact. For date, time, schedule state, completion state, file state, git state, counts, versions, and other verifiable facts, verify first whenever tools or files can confirm it.
 - After any factual mistake that could reduce trust, perform an explicit review of failure mode, root cause, containment, and preventive rule updates. Strengthen durable instructions instead of relying on intention alone.
 - For substantial workflows and troubleshooting, verify the current real state before the next action, advance one explicit step at a time, and do not stop at a vague partial state waiting for the user to prompt continuation.

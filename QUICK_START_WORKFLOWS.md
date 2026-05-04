@@ -199,7 +199,8 @@ bash /home/alantong/ai-work/scripts/install_excel_tools.sh
 1. 能用固定腳本，就不要臨時拼長命令
 2. 常用流程優先走 `scripts/` 裡的標準入口
 3. 一次只處理一個 approval，避免 approval id 過期互撞
-4. 大改動後，記得 commit
+4. 任務產生的檔案先放 `/home/alantong/ai-work/work_tmp/`，不要和 skill、markdown、原始 Python / shell 腳本混在一起
+5. 大改動後，記得 commit
 
 ---
 

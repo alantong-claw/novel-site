@@ -89,7 +89,7 @@ bash /home/alantong/ai-work/scripts/weekly_novel_startup_check.sh
 
 ## 5. Backup 流程
 
-### 完整週備份（含狀態與 retention）
+### 每週備份（平常跑 slim，每月第一次週備份跑 full）
 ```bash
 bash /home/alantong/ai-work/scripts/run_weekly_backup.sh
 ```

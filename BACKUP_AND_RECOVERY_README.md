@@ -45,17 +45,18 @@ bash backup_clawchan_slim.sh
 - 每隔幾天：跑一次完整備份
 - 想節省空間、保留可重建內容以外的核心資料：跑一次 slim backup
 - 想放到比較公開的位置：跑一次 public backup
-- 若要跑完整週備份流程（含狀態紀錄與保留策略）：
+- 若要跑每週備份流程（含狀態紀錄與保留策略）：
 ```bash
 bash /home/alantong/ai-work/scripts/run_weekly_backup.sh
 ```
 
 這會：
-- 執行完整私密備份
+- 平常每週執行 slim backup，只保留 `.tar.gz`
+- 每月第一次的週備份（每月 1 號觸發時）改跑完整私密備份，同時保留展開目錄與 `.tar.gz`
 - 寫入 `memory/backup-state.json`
 - 寫入 `memory/backup-run.log`
-- 只保留最新 5 份 `.tar.gz` 完整備份
-- 只保留最新 1 份展開目錄備份
+- slim / full 各自只保留最新 5 份對應 `.tar.gz`
+- 完整版展開目錄只保留最新 1 份
 
 若要避免聊天/exec 回合過長被中斷，可改用背景模式：
 ```bash

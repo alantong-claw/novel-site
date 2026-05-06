@@ -1,9 +1,24 @@
-const { chromium } = require('playwright');
 const path = require('path');
-const pixnetPaths = require('/home/alantong/ai-work/scripts/pixnet_paths');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
+const pixnetPaths = require('/home/alantong/ai-work/scripts/pixnet_paths');
 const { uploadImageStrict, verifyPublicArticleImage, waitForCondition } = require('./pixnet-upload-helper');
+
+function requirePlaywright() {
+  const candidates = [
+    'playwright',
+    path.join(pixnetPaths.MODERN_BASE, 'node_modules', 'playwright'),
+    path.join(pixnetPaths.LEGACY_BASE, 'node_modules', 'playwright'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch {}
+  }
+  throw new Error(`playwright-module-not-found:${candidates.join(',')}`);
+}
+
+const { chromium } = requirePlaywright();
 
 const rawId = process.argv[2];
 if (!rawId) {
@@ -58,9 +73,39 @@ function setTaskState(status, fields = {}) {
   }
 }
 
+function resolveWhiskyPhotoDir() {
+  const candidates = [
+    process.env.WHISKY_PHOTO_DIR,
+    '/mnt/g/TMP/whisky_photo',
+    path.join(ROOT, 'work_tmp', 'whisky_photo'),
+  ].filter(Boolean);
+  for (const dir of candidates) {
+    try {
+      if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) return dir;
+    } catch {}
+  }
+  throw new Error(`whisky-photo-dir-not-found:${candidates.join(',')}`);
+}
+
+function resolveWhiskyCsv(photoDir) {
+  const candidates = [
+    process.env.WHISKY_CSV_PATH,
+    path.join(photoDir, 'Whisky365_NoteAll.csv'),
+    path.join(ROOT, 'excel', 'import', 'Whisky365_NoteAll.csv'),
+    path.join(ROOT, 'excel', 'import', 'Whisky365_NoteAll_.csv'),
+  ].filter(Boolean);
+  for (const file of candidates) {
+    try {
+      if (fs.existsSync(file) && fs.statSync(file).isFile()) return file;
+    } catch {}
+  }
+  throw new Error(`whisky-csv-not-found:${candidates.join(',')}`);
+}
+
 function buildSpec(idNum) {
   const id = String(idNum).padStart(3, '0');
-  const csvPath = '/mnt/g/TMP/whisky_photo/Whisky365_NoteAll.csv';
+  const photoDir = resolveWhiskyPhotoDir();
+  const csvPath = resolveWhiskyCsv(photoDir);
   const txt = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '');
   const rows = txt.split(/\r?\n/).filter(Boolean).map(parseCsvLine);
   const row = rows.find(r => r && clean(r[0]) === String(idNum));
@@ -71,10 +116,10 @@ function buildSpec(idNum) {
   const tags = ['Whisky'];
   for (const part of region.split('/').map(s => s.trim()).filter(keep)) tags.push(part);
   for (const v of [row[1], row[2], row[7]]) if (keep(v)) tags.push(clean(v));
-  const matches = fs.readdirSync('/mnt/g/TMP/whisky_photo')
+  const matches = fs.readdirSync(photoDir)
     .filter(name => name.startsWith(`${id}_`))
     .sort()
-    .map(name => path.join('/mnt/g/TMP/whisky_photo', name));
+    .map(name => path.join(photoDir, name));
   if (!matches.length) throw new Error(`image-not-found:${id}`);
   return { num: id, title, tags, image: matches[0] };
 }

@@ -22,10 +22,20 @@ cd /home/alantong/ai-work
 bash backup_clawchan_public.sh
 ```
 
-## 3. 救援清單
+## 3. 瘦身版備份腳本
+- `backup_clawchan_slim.sh`
+- 用途：排除 `.git/`、`venv/`、`.venv/`、`.venv-ppt/`、`tmp/`、`work_tmp/` 等可重建或暫存資料，節省空間
+
+執行方式：
+```bash
+cd /home/alantong/ai-work
+bash backup_clawchan_slim.sh
+```
+
+## 4. 救援清單
 - `CLAWCHAN_RESCUE_BACKUP_CHECKLIST.md`
 
-## 4. 災難復原 SOP
+## 5. 災難復原 SOP
 - `CLAWCHAN_DISASTER_RECOVERY_SOP.md`
 
 ## 建議使用方式
@@ -33,6 +43,7 @@ bash backup_clawchan_public.sh
 ### 平常
 - 重要改動後：先 commit
 - 每隔幾天：跑一次完整備份
+- 想節省空間、保留可重建內容以外的核心資料：跑一次 slim backup
 - 想放到比較公開的位置：跑一次 public backup
 - 若要跑完整週備份流程（含狀態紀錄與保留策略）：
 ```bash

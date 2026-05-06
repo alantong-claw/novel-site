@@ -43,7 +43,8 @@ bash /home/alantong/ai-work/scripts/run_weekly_backup.sh
 - 執行完整私密備份
 - 寫入 `memory/backup-state.json`
 - 寫入 `memory/backup-run.log`
-- 只保留最新 5 份完整備份
+- 只保留最新 5 份 `.tar.gz` 完整備份
+- 只保留最新 1 份展開目錄備份
 
 若要避免聊天/exec 回合過長被中斷，可改用背景模式：
 ```bash

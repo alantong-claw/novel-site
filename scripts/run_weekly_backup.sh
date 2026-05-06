@@ -41,12 +41,21 @@ if [[ -n "$LATEST_ARCHIVE" && -f "$LATEST_ARCHIVE" ]]; then
   SIZE="$(stat -c %s "$LATEST_ARCHIVE")"
 fi
 
-# Retention: keep latest 5 full backups, remove older ones.
+# Retention: keep latest 5 full backup archives, remove older ones.
 mapfile -t OLD_BACKUPS < <(ls -1t "$DEST"/clawchan-full-*.tar.gz 2>/dev/null | tail -n +6 || true)
 for f in "${OLD_BACKUPS[@]}"; do
   rm -f "$f"
 done
 
-printf '{"last_run":"%s","status":"ok","destination":"%s","latest_archive":"%s","latest_size":%s,"retention":"keep_latest_5"}\n' "$TS" "$DEST" "$LATEST_ARCHIVE" "$SIZE" > "$STATE_FILE"
+# Retention: keep only the newest staged directory, remove older timestamped folders.
+mapfile -t STAGED_DIRS < <(find "$DEST" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '.*/[0-9]{8}-[0-9]{6}' | sort -r || true)
+LATEST_STAGED_DIR="${STAGED_DIRS[0]:-}"
+if (( ${#STAGED_DIRS[@]} > 1 )); then
+  for d in "${STAGED_DIRS[@]:1}"; do
+    rm -rf "$d"
+  done
+fi
 
-echo "[$TS] backup ok latest=$LATEST_ARCHIVE size=$SIZE" >> "$LOG_FILE"
+printf '{"last_run":"%s","status":"ok","destination":"%s","latest_archive":"%s","latest_size":%s,"latest_directory":"%s","retention":"keep_latest_5_archives_and_latest_1_directory"}\n' "$TS" "$DEST" "$LATEST_ARCHIVE" "$SIZE" "$LATEST_STAGED_DIR" > "$STATE_FILE"
+
+echo "[$TS] backup ok latest=$LATEST_ARCHIVE size=$SIZE latest_dir=$LATEST_STAGED_DIR" >> "$LOG_FILE"

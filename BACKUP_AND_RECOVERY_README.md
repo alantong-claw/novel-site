@@ -52,7 +52,7 @@ bash /home/alantong/ai-work/scripts/run_weekly_backup.sh
 
 這會：
 - 平常每週執行 slim backup，只保留 `.tar.gz`
-- 每月第一次的週備份（每月 1 號觸發時）改跑完整私密備份，同時保留展開目錄與 `.tar.gz`
+- 每月第一個週日的備份改跑完整私密備份，同時保留展開目錄與 `.tar.gz`
 - 寫入 `memory/backup-state.json`
 - 寫入 `memory/backup-run.log`
 - slim / full 各自只保留最新 5 份對應 `.tar.gz`

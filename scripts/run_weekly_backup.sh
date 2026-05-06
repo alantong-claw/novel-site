@@ -7,6 +7,7 @@ STATE_FILE="$ROOT/memory/backup-state.json"
 LOG_FILE="$ROOT/memory/backup-run.log"
 TS="$(TZ=Asia/Taipei date '+%Y-%m-%dT%H:%M:%S%z')"
 DAY_OF_MONTH="$(TZ=Asia/Taipei date '+%d')"
+DAY_OF_WEEK="$(TZ=Asia/Taipei date '+%u')"
 MODE="slim"
 BACKUP_CMD=(bash "$ROOT/backup_clawchan_slim.sh" "$ROOT" "$DEST")
 ARCHIVE_GLOB='clawchan-slim-*.tar.gz'
@@ -23,7 +24,7 @@ fi
 
 mkdir -p "$DEST"
 
-if [[ "$DAY_OF_MONTH" == "01" ]]; then
+if [[ "$DAY_OF_WEEK" == "7" && "$DAY_OF_MONTH" -le 07 ]]; then
   MODE="full"
   BACKUP_CMD=(bash "$ROOT/backup_clawchan.sh" "$ROOT" "$DEST")
   ARCHIVE_GLOB='clawchan-full-*.tar.gz'

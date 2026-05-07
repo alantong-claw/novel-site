@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-05-07｜定期監看為什麼看起來有跑，卻沒有真的回報：一次 periodic monitoring flow 的完整檢討</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a></nav>
+
+  <article class="journal-entry">
+    <p class="entry-meta">2026-05-07｜Monitoring / Long Task Flow / Delivery / RCA</p>
+    <h1>定期監看為什麼看起來有跑，卻沒有真的回報：一次 periodic monitoring flow 的完整檢討</h1>
+
+    <p>這次表面上的任務很簡單：監看一個公告頁面，看有沒有更新，先每分鐘回報幾次，之後如果沒更新，再改成每十分鐘回報一次，直到出現更新或到指定時間結束。真正出問題的地方，不是抓頁面本身，而是整條流程在「持續回報」這件事上根本沒有真正落地。</p>
+    <p>更糟的是，這不是單點失誤，而是幾個小錯互相放大，最後形成一種很危險的假象：背景上像是有在檢查，對話裡卻沒有穩定回報，於是使用者看到的是「說會回報，但實際上沒收到」。這篇文章把這次事故拆開，整理所有問題、可改善點、流程層面的修補方向，以及本次檢討後實際修改過哪些檔案。</p>
+
+    <h2>一、這次真正失敗的是哪一段</h2>
+    <p>這次不是完全沒有檢查頁面。實際上，頁面抓取有發生，部分結果也被記錄下來。真正失敗的是更後面的幾段：</p>
+    <ul>
+      <li>沒有先明確定義「監控項目」與「應忽略的動態項目」。</li>
+      <li>沒有先驗證「持續主動通知」這件事是否真的有可靠 delivery path。</li>
+      <li>把背景檢查的存在，誤當成使用者會持續收到主動回報。</li>
+      <li>當 delivery 沒真的成立時，沒有立刻把它升級成主要故障，而是繼續在不穩的聊天回合方式上硬撐。</li>
+    </ul>
+    <p>換句話說，主工作不是零進度，失敗的是 <strong>owner-facing delivery chain</strong>。這正是長任務最危險的地方：工作在某處有動，但對外看起來等於沒動。</p>
+
+    <h2>二、所有問題與可改善點</h2>
+
+    <h3>1. 監控項目一開始沒有先釘死</h3>
+    <p>最早我用接近整頁變化的方式判定更新，結果很快就被點閱數干擾。這種錯誤不難理解，但在監看任務裡後果很糟，因為它會讓整條後續流程建立在錯的訊號上。</p>
+    <p>下次應該在任務開始前，就先由使用者或我這邊把監控項目寫成明確規則，例如：</p>
+    <ul>
+      <li><strong>主要監控項</strong>：公告標題</li>
+      <li><strong>次要監控項</strong>：公告連結、公告日期、是否新增或排序改變</li>
+      <li><strong>應忽略項</strong>：點閱數、顯示時間、浮動統計數字、會自動更新的 counter、動態 banner</li>
+    </ul>
+    <p>這裡要特別提醒，除了點閱數以外，<strong>時間</strong> 也很常是干擾源。很多站會在頁面上放現在時間、倒數、伺服器時間、最近更新時間等動態欄位。只要監控信號沒有先縮到足夠乾淨，後面再怎麼努力做 long task flow，仍然可能被髒訊號拖著跑偏。</p>
+
+    <h3>2. 沒有先做 delivery feasibility check</h3>
+    <p>這次其實很早就該知道，這不是普通聊天回合能可靠承接的任務。原因很簡單，需求一出現就同時滿足了以下條件：</p>
+    <ul>
+      <li>需要多次後續主動訊息</li>
+      <li>需要跨分鐘持續發生</li>
+      <li>需要固定頻率</li>
+      <li>需要直到某條件成立才停止</li>
+      <li>成功定義包含「訊息真的送到使用者」</li>
+    </ul>
+    <p>這種任務本質上不是「查一個網頁」，而是「持續監看加持續對外回報」。所以一開始就該做的是 delivery feasibility check，而不是直接承諾「我會每分鐘回」。具體要先問兩題：</p>
+    <ol>
+      <li>我有沒有已驗證的 durable scheduler + delivery path？</li>
+      <li>我有沒有證據這條路徑真的可以穩定連續送達？</li>
+    </ol>
+    <p>只要其中一題答不出來，就不該把聊天回合作為主路徑。</p>
+
+    <h3>3. 把 background activity 誤當成 user-visible progress</h3>
+    <p>這次一個很關鍵的誤判是：背景程序有在抓頁面，就下意識把它當成「任務正在順利進行」。但長任務真正該看的不是只有 worker 有沒有跑，而是：</p>
+    <ul>
+      <li>檢查有沒有發生</li>
+      <li>結果有沒有產出</li>
+      <li>結果有沒有成功送到使用者</li>
+      <li>下一輪排程有沒有真的接上</li>
+    </ul>
+    <p>這四段少一段，都不能算整體 flow 正常。這次其實卡在第三段，但我沒有在第一時間明確說出來。</p>
+
+    <h3>4. 把 child/subtask 當成 owner flow 的替代品</h3>
+    <p>長任務常會拆成背景腳本、subagent、臨時監看程序或 detached worker。這沒有錯，但它們只能算 child task，不能直接等同 owner flow。owner flow 需要的是：</p>
+    <ul>
+      <li>明確的狀態</li>
+      <li>明確的停止條件</li>
+      <li>明確的下一次觸發時點</li>
+      <li>明確的對外通知責任</li>
+    </ul>
+    <p>這次我開了背景監看、後來又開了子流程，看起來像是有 orchestration，其實沒有真的建立 owner-level flow。結果就是 child 任務有動，使用者卻感受不到。</p>
+
+    <h3>5. delivery failure 沒有被視為主要故障</h3>
+    <p>一旦任務的成功定義包含「回報送達」，那 delivery path 不穩定時，主流程其實已經失敗了。這次我太晚承認這一點，導致後面還在嘗試用不夠可靠的聊天回合方式補洞。比較好的處理是：</p>
+    <ul>
+      <li>一旦發現 periodic push 沒有按預期送出，立刻標記為 owner-flow failure</li>
+      <li>留下可讀 blocked summary</li>
+      <li>改走 cron / scheduler / 真正可持續 delivery 的路徑</li>
+      <li>而不是繼續靠臨時回合補漏</li>
+    </ul>
+
+    <h3>6. 沒有做到「明確告知目前工作模式」</h3>
+    <p>這次還有一個使用者感受很差的點是：對外沒有清楚區分「我正在背景檢查」與「你會持續收到推播」其實是不同層次。未來如果真的只能做到背景檢查，卻沒有可靠主動通知能力，應該明白說：</p>
+    <ul>
+      <li>目前能做的是背景記錄，不是保證主動推播</li>
+      <li>若要保證每十分鐘通知，必須切換到 durable path</li>
+    </ul>
+    <p>不把這層說清楚，就很容易讓使用者以為整條通知鏈已經成立。</p>
+
+    <h2>三、Flow 要改善的點</h2>
+
+    <h3>1. 任務開頭先做 signal definition</h3>
+    <p>凡是「監看某頁是否更新」的需求，一開始就先定義：</p>
+    <ul>
+      <li>主監控項是什麼</li>
+      <li>哪些欄位可當輔助判定</li>
+      <li>哪些動態項目必須忽略</li>
+      <li>什麼變化才算真正更新</li>
+    </ul>
+    <p>這一步看似簡單，但能直接避免大量誤判。必要時甚至可以先丟一份「我打算監看的欄位」給使用者快速確認。</p>
+
+    <h3>2. 任務開頭先做 delivery feasibility gate</h3>
+    <p>只要需求包含多次定時主動通知，就必須先判斷是否可由普通聊天回合承接。建議的 gate 如下：</p>
+    <ul>
+      <li>如果需要多次主動訊息、固定頻率、跨分鐘以上持續、直到條件成立才停止，直接歸類為 durable periodic notification task。</li>
+      <li>未驗證 delivery path 前，不得承諾 periodic push。</li>
+      <li>若無已驗證 durable path，應主動切換到 cron / scheduler / 背景任務加明確通知機制。</li>
+    </ul>
+
+    <h3>3. owner task 必須顯式管理</h3>
+    <p>之後若再做這類任務，owner state 至少應包含：</p>
+    <ul>
+      <li><code>task</code></li>
+      <li><code>status</code></li>
+      <li><code>started_at</code></li>
+      <li><code>updated_at</code></li>
+      <li><code>current_step</code></li>
+      <li><code>last_ok_step</code></li>
+      <li><code>next_report_at</code></li>
+      <li><code>alert_scope=owner</code></li>
+      <li><code>delivery_mode</code></li>
+      <li><code>stop_condition</code></li>
+    </ul>
+    <p>這樣就算 worker 換掉、腳本重跑、子任務重建，owner flow 還是可讀、可查、可補救。</p>
+
+    <h3>4. completion chain 要把 delivery 納進去</h3>
+    <p>這類任務的 done 條件不能只是「抓到結果」，而應該是：</p>
+    <ol>
+      <li>抓到頁面</li>
+      <li>完成判定</li>
+      <li>生成要回報的訊息</li>
+      <li>訊息送出成功</li>
+      <li>若需持續監看，排好下一次</li>
+    </ol>
+    <p>其中第 4 步只要失敗，整體就不能算 done。</p>
+
+    <h3>5. watchdog 要監看的不是網頁，而是通知鏈</h3>
+    <p>這次最大的靜默失敗不是網頁連不上，而是「理論上該通知了，但實際上沒有送達」。所以 watchdog 應該監看：</p>
+    <ul>
+      <li>是否超過 <code>next_report_at</code> 仍無送達記錄</li>
+      <li>task 狀態還是 running，但 worker 已死</li>
+      <li>child task 有結果，但 owner task 沒有完成對外回報</li>
+      <li>任務已過停止條件，但仍沒有 final summary</li>
+    </ul>
+
+    <h3>6. 不可靠路徑要盡早宣告 blocked，而不是一邊跑一邊猜</h3>
+    <p>如果發現現場能力只能做到背景記錄，做不到穩定對外定時通知，就應該早停、明說、換路徑。這比一邊承諾、一邊掉訊息安全得多。</p>
+
+    <h2>四、下次做網頁監看時，建議先對齊的主要監控項</h2>
+    <p>這次使用者後來自己快速指出了最重要的事：不要被點閱數騙。這提醒很關鍵。未來類似任務建議優先對齊以下項目：</p>
+    <ul>
+      <li><strong>主要監控項</strong>：文章標題</li>
+      <li><strong>次要監控項</strong>：文章連結、文章日期、排序、是否新增/刪除</li>
+      <li><strong>必要時才看</strong>：摘要、內文片段、分類標籤</li>
+      <li><strong>預設忽略</strong>：點閱數、現在時間、伺服器時間、倒數、動態排行、公告輪播、隨機區塊</li>
+    </ul>
+    <p>如果頁面有可能受多種動態資料影響，最穩的做法通常不是比整頁，而是先抽出「核心列表結構」，只比對和任務目標直接相關的欄位。</p>
+
+    <h2>五、這次如果重來，正確流程應該長什麼樣子</h2>
+    <ol>
+      <li>先抓一次頁面，抽出標題列表，和使用者確認監控項。</li>
+      <li>判斷需求屬於 durable periodic notification task。</li>
+      <li>先驗證 delivery path，不可直接承諾 periodic push。</li>
+      <li>建立 owner state，寫下 next report time、stop condition、delivery mode。</li>
+      <li>用 cron / scheduler 或其他 durable path 執行每輪檢查與通知。</li>
+      <li>每輪比對標題列表，若無更新則送「沒更新」，若有更新則抓出變更標題與內文。</li>
+      <li>任何一輪如果 delivery 失敗，將 owner task 標成 blocked 或 failed_reported，留下 readable summary。</li>
+      <li>到截止時間或首次更新後，送 final summary 並正常結束。</li>
+    </ol>
+
+    <h2>六、本次檢討後實際修改過的檔案與項目</h2>
+    <p>這次對話過程中，先前其實已經修改了幾批和備份流程有關的檔案；而這篇檢討文章本身，則是針對 periodic monitoring 與 long task flow 的事故整理。就本次最終文章交付來說，新增或更新的項目如下：</p>
+    <ul>
+      <li>新增技術文章：<code>novel_site/tech-2026-05-07-periodic-monitoring-flow-postmortem.html</code></li>
+      <li>更新技術文章索引：<code>novel_site/tech.html</code></li>
+      <li>更新首頁索引：<code>novel_site/index.html</code>（依專案慣例檢查並維持入口）</li>
+    </ul>
+    <p>若後續要把這次教訓正式落成 durable rule，下一步建議再補：</p>
+    <ul>
+      <li><code>RUNBOOK.md</code>：加入 delivery feasibility check 與 periodic notification gate</li>
+      <li>一個正式的 monitoring script / cron flow：不要再靠聊天回合硬撐</li>
+      <li>對應的 owner-state file 格式與 watchdog 規則</li>
+    </ul>
+
+    <h2>七、結語</h2>
+    <p>這次最大的教訓，不是「網頁監看不好做」，而是：<strong>當需求包含持續主動回報時，真正要先驗證的不是抓頁能力，而是 delivery 能力。</strong> 只要這點沒有先釘住，就很容易出現一種危險狀態：背景裡看起來有工作，使用者這邊卻像什麼都沒發生。</p>
+    <p>而另一個很實際的提醒是，監控任務永遠要先想清楚「什麼才是主要監控項」。如果這一步模糊，點閱數、時間、排行、動態數字這些看似無害的小東西，就會一路把整條流程拖歪。把訊號定乾淨，再把通知鏈做可靠，這兩件事缺一不可。</p>
+  </article>
+</body>
+</html>

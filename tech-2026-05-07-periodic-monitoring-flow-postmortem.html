@@ -173,18 +173,20 @@
     </ol>
 
     <h2>六、本次檢討後實際修改過的檔案與項目</h2>
-    <p>這次對話過程中，先前其實已經修改了幾批和備份流程有關的檔案；而這篇檢討文章本身，則是針對 periodic monitoring 與 long task flow 的事故整理。就本次最終文章交付來說，新增或更新的項目如下：</p>
+    <p>這次不只寫文章，還把其中一部分真的補進共享規則。已實際修改或新增的項目如下：</p>
     <ul>
+      <li>更新共享流程規則：<code>RUNBOOK.md</code></li>
       <li>新增技術文章：<code>novel_site/tech-2026-05-07-periodic-monitoring-flow-postmortem.html</code></li>
       <li>更新技術文章索引：<code>novel_site/tech.html</code></li>
-      <li>更新首頁索引：<code>novel_site/index.html</code>（依專案慣例檢查並維持入口）</li>
+      <li>更新網站入口版本指標：外層 workspace 的 <code>novel_site</code> submodule pointer</li>
     </ul>
-    <p>若後續要把這次教訓正式落成 durable rule，下一步建議再補：</p>
+    <p>其中，<code>RUNBOOK.md</code> 已新增三類與本次事故直接對應的 durable rule：</p>
     <ul>
-      <li><code>RUNBOOK.md</code>：加入 delivery feasibility check 與 periodic notification gate</li>
-      <li>一個正式的 monitoring script / cron flow：不要再靠聊天回合硬撐</li>
-      <li>對應的 owner-state file 格式與 watchdog 規則</li>
+      <li><strong>Periodic monitoring and notification gate</strong>：凡是需要多次定時主動回報的任務，先做 delivery feasibility check，未驗證不得承諾 periodic push。</li>
+      <li><strong>Monitoring signal definition rule</strong>：監看網頁或 feed 前，先明確定義 primary signal、secondary signals、ignored dynamic fields 與 real update condition。</li>
+      <li><strong>Owner-level delivery responsibility for periodic tasks</strong>：owner flow 必須追蹤 <code>next_report_at</code>、<code>delivery_mode</code>、<code>stop_condition</code> 與「最新回報是否真的送達」。</li>
     </ul>
+    <p>也就是說，這次不是只留下事故文字，而是已經把最核心的防呆機制，補進日後會實際影響執行的 shared rule。</p>
 
     <h2>七、結語</h2>
     <p>這次最大的教訓，不是「網頁監看不好做」，而是：<strong>當需求包含持續主動回報時，真正要先驗證的不是抓頁能力，而是 delivery 能力。</strong> 只要這點沒有先釘住，就很容易出現一種危險狀態：背景裡看起來有工作，使用者這邊卻像什麼都沒發生。</p>

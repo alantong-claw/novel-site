@@ -184,6 +184,54 @@ Unacceptable terminal states include:
 - primary work done but required final notification/delivery not sent
 - failure exists but no readable summary exists
 
+### 13. Periodic monitoring and notification gate
+Use this whenever a task involves checking something repeatedly and proactively reporting results back to Alan.
+
+A task must be treated as a durable periodic notification task, not a normal chat-turn task, if any of the following is true:
+- it requires more than one future proactive message
+- it spans multiple minutes or longer
+- it requires fixed intervals or scheduled checkpoints
+- it should continue until a condition is met or a cutoff time is reached
+- success includes the user actually receiving each report
+
+Before promising periodic push updates, perform a delivery feasibility check.
+At minimum verify:
+- what the primary monitoring signal is
+- which dynamic fields must be ignored
+- what delivery path will be used
+- whether that delivery path has been verified for repeated autonomous sends
+
+If repeated autonomous delivery is not already verified, do not promise periodic push from a plain chat-turn flow.
+Instead, switch to a durable path such as cron, scheduler, watchdog-backed script, or another verified owner-level mechanism.
+
+### 14. Monitoring signal definition rule
+For webpage or feed monitoring tasks, define the signal before starting the long task.
+Capture at minimum:
+- primary signal, for example title list
+- secondary signals, for example links, dates, order, add/remove events
+- ignored dynamic fields, for example view counts, current time, countdowns, rotating banners, ranking widgets, random blocks
+- exact condition that counts as a real update
+
+Do not compare whole-page hashes by default when the page contains known dynamic noise.
+Prefer extracting and comparing only the smallest relevant structure.
+
+### 15. Owner-level delivery responsibility for periodic tasks
+For durable periodic notification tasks, the owner flow must explicitly track:
+- `next_report_at`
+- `delivery_mode`
+- `stop_condition`
+- whether the latest report was actually sent
+
+Background checking alone does not count as user-visible progress.
+A periodic monitoring task is not healthy unless all of the following are true:
+- the check ran
+- the result was produced
+- the result was delivered
+- the next scheduled report remains on track
+
+If result delivery fails, treat that as an owner-flow failure, not as a minor child-task issue.
+Escalate to `blocked` or `failed_reported` with a readable summary if reliable recovery is not immediately available.
+
 ## Deliverables and Review Standards
 
 - If any task fails, perform a post-mortem using the 8D report method and strengthen preventive measures.

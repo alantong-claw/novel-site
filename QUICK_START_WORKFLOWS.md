@@ -109,7 +109,12 @@ bash /home/alantong/ai-work/scripts/mark_backup_pending.sh
 bash /home/alantong/ai-work/scripts/handle_backup_ok.sh
 ```
 
-### 收到 Telegram 的 `NOVEL OK` 後處理小說發布
+### Weekly novel 正常節奏
+1. Sunday check 先把 `memory/novel-progress.json` 設成 `needs_draft`
+2. 先完成真正章節草稿（不可停在 placeholder）
+3. 確認狀態已是 `awaiting_ok`
+4. 收到 Telegram 的 `NOVEL OK` 後，才處理小說發布
+
 ```bash
 bash /home/alantong/ai-work/scripts/handle_weekly_novel_ok.sh
 ```
@@ -159,6 +164,12 @@ bash /home/alantong/ai-work/scripts/install_excel_tools.sh
 - `/home/alantong/ai-work/excel/README.md`
 - `/home/alantong/ai-work/BACKUP_AND_RECOVERY_README.md`
 - `/home/alantong/ai-work/research/backup-ok-flow.md`
+- `/home/alantong/ai-work/openclaw/skills/durable-long-task/SKILL.md`
+- `/home/alantong/ai-work/openclaw/skills/durable-long-task/reference.md`
+- `/home/alantong/ai-work/openclaw/skills/durable-long-task/long-task-template.md`
+- `/home/alantong/ai-work/skills/alan-longtask/SKILL.md`
+- `/home/alantong/ai-work/skills/alan-longtask/reference.md`
+- `/home/alantong/ai-work/skills/alan-longtask/task-template.md`
 
 ---
 

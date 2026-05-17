@@ -25,7 +25,7 @@ content = f'''章節標題
 {title}
 
 章節全文
-（待撰寫）
+（待撰寫：先依 {RULES.name} / {OUTLINE.name} 完成真正草稿，再請 Alan 確認 OK）
 
 本章重點摘要
 - 延續第{prev_num}章收尾，推進主線衝突。
@@ -34,10 +34,10 @@ content = f'''章節標題
 角色／關係／伏筆更新
 - 待撰寫。
 
-準備發布狀態：等待 Alan 於 Telegram 回覆 OK
+準備發布狀態：尚未可發布；需先完成真正草稿
 '''
 review_file.write_text(content)
-summary = f'''Weekly novel draft placeholder prepared.
+summary = f'''Weekly novel draft scaffold prepared. DO NOT ask for NOVEL OK yet.
 Previous chapter: chapter{prev_num}.html
 Last paragraphs from previous chapter:
 {last_paras}
@@ -46,9 +46,10 @@ Rules source: {RULES}
 Outline source: {OUTLINE}
 Novel index: {NOVEL}
 Review file: {review_file}
+Next required action: write the full chapter draft, then set state to awaiting_ok.
 '''
 summary_file.write_text(summary)
-obj['status'] = 'draft_placeholder_ready'
+obj['status'] = 'needs_draft'
 STATE.write_text(json.dumps(obj, ensure_ascii=False) + '\n')
 print(review_file)
 print(summary_file)

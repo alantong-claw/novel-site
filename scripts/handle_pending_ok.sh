@@ -48,7 +48,7 @@ if [[ "$backup_status" == "pending" || "$backup_status" == "started" ]]; then
   backup_eligible=1
 fi
 
-if [[ "$novel_status" == "awaiting_ok" || "$novel_status" == "awaiting_novel_ok" || "$novel_status" == "draft_placeholder_ready" ]]; then
+if [[ "$novel_status" == "awaiting_ok" || "$novel_status" == "awaiting_novel_ok" ]]; then
   novel_eligible=1
 fi
 

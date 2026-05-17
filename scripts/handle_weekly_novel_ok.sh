@@ -18,16 +18,9 @@ print(obj.get('status',''))
 PY
 )"
 
-if [[ "$status" == "draft_placeholder_ready" ]]; then
-  python3 - <<'PY'
-import json
-from pathlib import Path
-p = Path('/home/alantong/ai-work/memory/novel-progress.json')
-obj = json.loads(p.read_text())
-obj['status'] = 'awaiting_ok'
-p.write_text(json.dumps(obj, ensure_ascii=False) + '\n')
-PY
-  status="awaiting_ok"
+if [[ "$status" == "needs_draft" || "$status" == "draft_placeholder_ready" ]]; then
+  echo "Novel draft is not finished yet. Complete the real chapter draft before NOVEL OK."
+  exit 1
 fi
 
 if [[ "$status" == "awaiting_novel_ok" ]]; then

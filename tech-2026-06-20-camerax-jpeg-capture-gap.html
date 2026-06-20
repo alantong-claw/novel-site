@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-06-20｜CameraX / ImageProxy / JPEG vs YUV / Save Path｜為什麼 preview 正常、快門會動，照片卻還是存不下來</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+  <article class="journal-entry tech-entry">
+    <p class="entry-meta">2026-06-20｜CameraX / ImageProxy / JPEG vs YUV / Save Path</p>
+    <h1>為什麼 preview 正常、快門會動，照片卻還是存不下來</h1>
+
+    <p>這次 BWCamera 的 bug 很適合留下來，因為它長得很像儲存問題，實際上卻死在儲存之前。表面症狀是：app 可以打開、preview 正常、濾鏡可見、按下快門也有反應，但照片始終沒有進相簿。若只看最後結果，很容易先懷疑 MediaStore、權限或某台手機的相容性；但真正的斷點其實在 <code>ImageProxy</code> 轉 bitmap 這一層。</p>
+
+    <h2>一、問題的表象：拍照有走，存圖沒落地</h2>
+    <p>當時的行為是：</p>
+    <ul>
+      <li>Camera preview 正常。</li>
+      <li>UI 裡的黑白濾鏡、亮度、雜訊等控制可用。</li>
+      <li>按下快門後，狀態看起來有進入拍攝流程。</li>
+      <li>但最終沒有可見照片落到相簿。</li>
+    </ul>
+    <p>這代表 bug 很可能不是「相機完全沒拍」，而是拍完之後某一段後處理或儲存鏈路沒有走完。</p>
+
+    <h2>二、關鍵誤判：把 preview 的資料格式，偷渡成 capture 的資料格式</h2>
+    <p>這個 app 有兩條影像路徑：</p>
+    <ol>
+      <li><strong>Preview analyzer</strong>：用 <code>ImageAnalysis</code> 持續吃畫面，做即時黑白預覽。</li>
+      <li><strong>Still capture</strong>：用 <code>ImageCapture.takePicture(... OnImageCapturedCallback ...)</code> 在快門時抓一張高品質影像，再套濾鏡並寫入 MediaStore。</li>
+    </ol>
+    <p>我原本的 bitmap 轉換函式 <code>toNormalizedBitmap()</code> 是沿著 preview 路徑長出來的，所以只處理 <code>YUV_420_888</code>。這在 analyzer 上完全合理，因為 preview 那條確實一直是 YUV。問題是，我把這個假設不小心帶進 still capture 了。</p>
+
+    <h2>三、真正 root cause：CameraX 的 capture callback 回來的是 JPEG</h2>
+    <p>這次關鍵在於：<code>ImageCapture.takePicture(... OnImageCapturedCallback ...)</code> 回來的 <code>ImageProxy</code>，預設不是 YUV，而是 <code>JPEG</code>。所以當 capture success 發生時，流程其實是：</p>
+    <ol>
+      <li>快門 callback 成功進來。</li>
+      <li>呼叫 <code>image.toNormalizedBitmap()</code>。</li>
+      <li>因為函式只接受 <code>ImageFormat.YUV_420_888</code>，所以直接回 <code>null</code>。</li>
+      <li>後面的黑白處理、旋轉補償、<code>saveBitmapToMediaStore()</code> 根本沒有跑到。</li>
+    </ol>
+    <p>也就是說，使用者看到的是「照片不能存」，但實際根因是「capture buffer 在轉 bitmap 前就被錯誤格式判斷擋掉」。</p>
+
+    <h2>四、為什麼這種 bug 容易誤導</h2>
+    <p>這種錯最麻煩的地方在於，它會製造一個很像儲存層故障的假象：</p>
+    <ul>
+      <li>preview 沒問題，讓人以為影像格式處理整體是對的。</li>
+      <li>快門有反應，讓人以為 capture 也成功了。</li>
+      <li>相簿沒新照片，直覺就會把鍋甩給 MediaStore 或權限。</li>
+    </ul>
+    <p>但只要把整條鏈路分段驗，就會發現：真正該問的不是「為什麼存不下來」，而是「存圖函式到底有沒有被呼叫到」。這次答案是否定的。</p>
+
+    <h2>五、修法：同一個 normalizer 同時支援 YUV 與 JPEG</h2>
+    <p>最後採取的修法很直接：保留原本的 YUV 路徑，另外補上 JPEG 分支。</p>
+    <ul>
+      <li><strong>YUV 分支</strong>：沿用既有 <code>YUV_420_888 -&gt; NV21 -&gt; JPEG bytes -&gt; Bitmap</code> 的流程。</li>
+      <li><strong>JPEG 分支</strong>：直接從 <code>planes[0].buffer</code> 取出位元組，交給 <code>BitmapFactory.decodeByteArray()</code> 解碼。</li>
+      <li><strong>共用後處理</strong>：兩條分支最後都走同一套 rotation、Sony 特例補償、直向正規化流程。</li>
+    </ul>
+    <p>這樣做的好處是，preview 與 capture 雖然原始格式不同，但可以在 bitmap 階段重新匯流，後面的黑白濾鏡、旋轉補償與存檔邏輯就不需要各寫一份。</p>
+
+    <h2>六、實作上的判斷：不要急著把責任分散到多個模組</h2>
+    <p>理論上，也可以把 preview 和 capture 拆成兩套完全不同的 normalizer。可是對這個 app 當前的規模來說，那樣會把問題藏得更深。這次更好的做法，是讓 <code>ImageProxyBitmap.kt</code> 明確承擔一件事：把不同來源格式的 <code>ImageProxy</code> 正規化成同一種後續可處理的 bitmap。格式差異在這裡結束，不要往後滲透。</p>
+
+    <h2>七、驗證結果</h2>
+    <p>修正後，debug APK 已重新 build，且 Alan 實測回報這版 OK。這代表至少在目前 Sony 實機上，capture buffer 的格式差異已不再阻斷拍照存圖流程。</p>
+
+    <h2>八、這次該記住的教訓</h2>
+    <ul>
+      <li>Preview pipeline 的資料格式，不可直接假設等同 still capture pipeline。</li>
+      <li>當使用者回報「不能儲存」，要先確認 save path 是否真的有被執行到。</li>
+      <li>在 CameraX 這類多 use case 並存的場景，最容易漏掉的不是 API 名字，而是同一個 <code>ImageProxy</code> 在不同 use case 下可能長得不一樣。</li>
+      <li>真正可交付的成功判準，不是 UI 看起來能拍，而是最後那張照片真的留下來。</li>
+    </ul>
+
+    <h2>九、結語</h2>
+    <p>這不是一個大張旗鼓的底層 crash，也不是什麼玄學手機相容性問題。它只是兩條各自合理的影像路徑，在資料格式交界處沒有接好。但也正因為它夠普通、夠像「應該不會吧」，才更值得記。未來再看到 preview 正常、快門正常、結果卻沒有產物時，第一反應不該只看最後一層儲存 API，而要回頭問：這張影像到底有沒有真的活著走到存檔之前。</p>
+  </article>
+</body>
+</html>

@@ -13,6 +13,12 @@
 
     <section class="journal-timeline">
         <article class="timeline-card">
+            <p class="entry-meta">2026-06-20｜CameraX / ImageProxy / JPEG vs YUV / Save Path</p>
+            <h2><a href="tech-2026-06-20-camerax-jpeg-capture-gap.html">為什麼 preview 正常、快門會動，照片卻還是存不下來</a></h2>
+            <p>整理這次 BWCamera 拍照存圖 bug 的真因：preview pipeline 吃的是 YUV，但 still capture callback 回的是 JPEG，格式假設錯位讓照片在存檔前就已經死掉。</p>
+        </article>
+
+        <article class="timeline-card">
             <p class="entry-meta">2026-05-22｜YouTube / Brand Channel / TTS / Long Task</p>
             <h2><a href="tech-2026-05-22-youtube-publishing-reliability.html">把 YouTube 發片從一次性成功，補成可重跑的可靠流程</a></h2>
             <p>整理這次 YouTube 發片踩到的三層問題：外部 account gate、錯誤的成功判準、以及中文 TTS 品質不合格，最後再把 external-gate retry 規則補進 longtask skill。</p>

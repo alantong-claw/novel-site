@@ -62,11 +62,15 @@ class CameraViewModel : ViewModel() {
     }
 
     fun onRotateCompensationRequested() {
+        val nextRotation = (_uiState.value.rotationCompensationDegrees + 90) % 360
+        onRotationCompensationChanged(nextRotation)
+    }
+
+    fun onRotationCompensationChanged(value: Int) {
         _uiState.update {
-            val nextRotation = (it.rotationCompensationDegrees + 90) % 360
             it.copy(
-                rotationCompensationDegrees = nextRotation,
-                statusMessage = "旋轉補償調整為 ${nextRotation}°",
+                rotationCompensationDegrees = value,
+                statusMessage = "旋轉補償調整為 ${value}°",
             )
         }
     }

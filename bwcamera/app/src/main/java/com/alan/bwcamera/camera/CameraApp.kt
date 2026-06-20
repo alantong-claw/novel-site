@@ -75,6 +75,7 @@ fun CameraApp(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val rotationPreferenceStore = remember(context) { RotationPreferenceStore(context) }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             viewModel.onCameraPermissionChanged(granted)
@@ -104,6 +105,9 @@ fun CameraApp(
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
 
     LaunchedEffect(Unit) {
+        viewModel.onRotationCompensationChanged(
+            rotationPreferenceStore.loadRotationCompensationDegrees(),
+        )
         val granted = context.hasPermission(Manifest.permission.CAMERA)
         viewModel.onCameraPermissionChanged(granted)
         if (!granted) {
@@ -163,7 +167,11 @@ fun CameraApp(
                     onSaturationChanged = viewModel::onSaturationChanged,
                     onFilmGrainChanged = viewModel::onFilmGrainChanged,
                     onSettingsVisibilityToggled = viewModel::onSettingsVisibilityToggled,
-                    onRotateCompensationRequested = viewModel::onRotateCompensationRequested,
+                    onRotateCompensationRequested = {
+                        val nextRotation = (uiState.rotationCompensationDegrees + 90) % 360
+                        rotationPreferenceStore.saveRotationCompensationDegrees(nextRotation)
+                        viewModel.onRotationCompensationChanged(nextRotation)
+                    },
                     onZoomChanged = viewModel::onZoomChanged,
                     onCapture = {
                         val capture = imageCapture

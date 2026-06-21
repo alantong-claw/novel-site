@@ -7,6 +7,7 @@ Android MVP for a traditional black-and-white camera app that simulates classic 
 - Camera preview with `CameraX`
 - Traditional filter presets: `Red`, `Orange`, `Yellow`, `Green`, `Blue`
 - Adjustable `contrast`, `saturation bias`, and camera `zoom`
+- Tap-to-focus on the live preview
 - Filtered capture pipeline that saves JPEG output to `Pictures/BWCamera`
 - Compose-based UI ready for iteration
 
@@ -28,15 +29,36 @@ cd /home/alantong/ai-work/bwcamera
 JAVA_HOME=$HOME/.local/jdks/temurin-17 ./gradlew assembleDebug
 ```
 
-Verified on 2026-06-19:
+Verified on 2026-06-21:
 
 - `assembleDebug` completes successfully
 - APK output exists at `app/build/outputs/apk/debug/app-debug.apk`
-- No Android device is currently attached to the local `adb` server, so install/smoke testing still needs a connected device or emulator
+- Current app version is `0.1.1` (`0.1.1-debug` for debug builds)
+- Latest verified device result: landscape and portrait photo saves both behave correctly on Alan's phone
+- Tap-to-focus is implemented in code and compiles, but still needs on-device confirmation
+
+## Release AAB
+
+The project can build both debug and release app bundles:
+
+```bash
+cd /home/alantong/ai-work/bwcamera
+JAVA_HOME=$HOME/.local/jdks/temurin-17 ./gradlew bundleDebug
+JAVA_HOME=$HOME/.local/jdks/temurin-17 ./gradlew bundleRelease
+```
+
+To sign the release bundle for Google Play upload, create a local `keystore.properties`
+from `keystore.properties.example` and point it at a local upload keystore. The
+real keystore and `keystore.properties` are git-ignored on purpose.
+
+Expected outputs:
+
+- `app/build/outputs/bundle/debug/app-debug.aab`
+- `app/build/outputs/bundle/release/app-release.aab`
 
 ## Next Technical Steps
 
 1. Verify runtime performance on a real Android device.
 2. Replace the analyzer-overlay preview with a lower-latency GPU pipeline.
 3. Preserve richer metadata and add gallery review.
-4. Add app name, branding, privacy policy, screenshots, and release signing for Google Play.
+4. Add app name, branding, privacy policy, screenshots, and Play Console listing assets.

@@ -2,12 +2,15 @@ package com.alan.bwcamera.camera
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.BitmapFactory.Options
 import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.YuvImage
 import android.os.Build
 import androidx.camera.core.ImageProxy
+import androidx.exifinterface.media.ExifInterface
+import java.io.File
 import java.io.ByteArrayOutputStream
 
 fun ImageProxy.toNormalizedBitmap(): Bitmap? {
@@ -30,19 +33,17 @@ fun ImageProxy.toNormalizedBitmap(): Bitmap? {
             else -> null
         } ?: return null
 
-    val rotation = imageInfo.rotationDegrees
-    val rotated =
-        if (rotation == 0) {
-            decoded
-        } else {
-            val matrix = Matrix().apply {
-                postRotate(rotation.toFloat())
-            }
-            Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
-        }
+    return decoded
+        .rotateBy(imageInfo.rotationDegrees)
+        .applyDeviceRotationCompensation()
+        .ensurePortrait()
+}
 
-    val compensated = rotated.applyDeviceRotationCompensation()
-    return compensated.ensurePortrait()
+fun File.toNormalizedBitmap(): Bitmap? {
+    val decoded = BitmapFactory.decodeFile(path, Options()) ?: return null
+    val exif = ExifInterface(path)
+    val rotationDegrees = exif.rotationDegrees
+    return decoded.rotateBy(rotationDegrees).applyDeviceRotationCompensation()
 }
 
 private fun Bitmap.ensurePortrait(): Bitmap {

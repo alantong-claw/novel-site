@@ -93,6 +93,24 @@ class CameraViewModel : ViewModel() {
         }
     }
 
+    fun onFocusRequested() {
+        _uiState.update {
+            it.copy(statusMessage = "正在對焦...")
+        }
+    }
+
+    fun onFocusLocked() {
+        _uiState.update {
+            it.copy(statusMessage = "對焦完成")
+        }
+    }
+
+    fun onFocusFailed(message: String) {
+        _uiState.update {
+            it.copy(statusMessage = message)
+        }
+    }
+
     fun onPreviewFrameReady(bitmap: Bitmap) {
         _uiState.update { it.copy(previewBitmap = bitmap) }
     }

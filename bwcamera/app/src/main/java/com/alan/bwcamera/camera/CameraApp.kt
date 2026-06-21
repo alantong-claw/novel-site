@@ -4,7 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.view.OrientationEventListener
 import android.view.Surface
+import androidx.camera.core.FocusMeteringAction
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
@@ -16,6 +18,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +60,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -66,6 +70,7 @@ import com.alan.bwcamera.filter.FilterSettings
 import com.alan.bwcamera.filter.TraditionalFilter
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.launch
 
 @Composable
@@ -102,7 +107,12 @@ fun CameraApp(
             ),
         )
     var boundCamera by remember { mutableStateOf<Camera?>(null) }
+    var preview by remember { mutableStateOf<Preview?>(null) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var analyzer by remember { mutableStateOf<ImageAnalysis?>(null) }
+    var currentTargetRotation by remember {
+        mutableStateOf(previewView.display?.rotation ?: Surface.ROTATION_0)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.onRotationCompensationChanged(
@@ -117,6 +127,35 @@ fun CameraApp(
 
     LaunchedEffect(uiState.zoomRatio, boundCamera) {
         boundCamera?.cameraControl?.setZoomRatio(uiState.zoomRatio)
+    }
+
+    DisposableEffect(context) {
+        val orientationListener =
+            object : OrientationEventListener(context.applicationContext) {
+                override fun onOrientationChanged(orientation: Int) {
+                    if (orientation == ORIENTATION_UNKNOWN) {
+                        return
+                    }
+                    val nextRotation = orientationToSurfaceRotation(orientation)
+                    if (nextRotation != currentTargetRotation) {
+                        currentTargetRotation = nextRotation
+                    }
+                }
+            }
+
+        if (orientationListener.canDetectOrientation()) {
+            orientationListener.enable()
+        }
+
+        onDispose {
+            orientationListener.disable()
+        }
+    }
+
+    LaunchedEffect(currentTargetRotation, preview, imageCapture, analyzer) {
+        preview?.targetRotation = currentTargetRotation
+        imageCapture?.targetRotation = currentTargetRotation
+        analyzer?.targetRotation = currentTargetRotation
     }
 
     Surface(
@@ -143,7 +182,9 @@ fun CameraApp(
                         onPreviewFrame = viewModel::onPreviewFrameReady,
                     )
                 boundCamera = useCases.camera
+                preview = useCases.preview
                 imageCapture = useCases.imageCapture
+                analyzer = useCases.analyzer
                 viewModel.onZoomCapabilitiesChanged(
                     minZoom = 1f,
                     maxZoom = useCases.maxZoomRatio,
@@ -157,6 +198,18 @@ fun CameraApp(
                 CameraPreview(
                     previewView = previewView,
                     previewBitmap = uiState.previewBitmap,
+                    onTapToFocus = { x, y ->
+                        requestFocusAtPoint(
+                            context = context,
+                            camera = boundCamera,
+                            previewView = previewView,
+                            x = x,
+                            y = y,
+                            onFocusRequested = viewModel::onFocusRequested,
+                            onFocusLocked = viewModel::onFocusLocked,
+                            onFocusFailed = viewModel::onFocusFailed,
+                        )
+                    },
                     modifier = Modifier.weight(1f),
                 )
                 ControlPanel(
@@ -180,6 +233,7 @@ fun CameraApp(
                         } else {
                             scope.launch {
                                 viewModel.onCaptureStarted()
+                                capture.targetRotation = currentTargetRotation
                                 captureFilteredPhoto(
                                     context = context,
                                     imageCapture = capture,
@@ -232,6 +286,7 @@ private fun PermissionGate(
 private fun CameraPreview(
     previewView: PreviewView,
     previewBitmap: Bitmap?,
+    onTapToFocus: (x: Float, y: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -251,6 +306,16 @@ private fun CameraPreview(
                 modifier = Modifier.fillMaxSize(),
             )
         }
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(onTapToFocus) {
+                        detectTapGestures { offset ->
+                            onTapToFocus(offset.x, offset.y)
+                        }
+                    },
+        )
     }
 }
 
@@ -436,7 +501,9 @@ private fun Context.hasPermission(permission: String): Boolean =
 
 private data class BoundCameraUseCases(
     val camera: Camera,
+    val preview: Preview,
     val imageCapture: ImageCapture,
+    val analyzer: ImageAnalysis,
     val currentZoomRatio: Float,
     val maxZoomRatio: Float,
 )
@@ -496,8 +563,65 @@ private fun bindCameraUseCases(
 
     return BoundCameraUseCases(
         camera = camera,
+        preview = preview,
         imageCapture = imageCapture,
+        analyzer = analyzer,
         currentZoomRatio = currentZoom,
         maxZoomRatio = maxZoom,
+    )
+}
+
+private fun orientationToSurfaceRotation(orientation: Int): Int =
+    when (orientation) {
+        in 45..134 -> Surface.ROTATION_270
+        in 135..224 -> Surface.ROTATION_180
+        in 225..314 -> Surface.ROTATION_90
+        else -> Surface.ROTATION_0
+    }
+
+private fun requestFocusAtPoint(
+    context: Context,
+    camera: Camera?,
+    previewView: PreviewView,
+    x: Float,
+    y: Float,
+    onFocusRequested: () -> Unit,
+    onFocusLocked: () -> Unit,
+    onFocusFailed: (String) -> Unit,
+) {
+    val activeCamera = camera
+    if (activeCamera == null) {
+        onFocusFailed("相機尚未完成初始化")
+        return
+    }
+
+    onFocusRequested()
+    val meteringPoint = previewView.meteringPointFactory.createPoint(x, y)
+    val action =
+        FocusMeteringAction
+            .Builder(
+                meteringPoint,
+                FocusMeteringAction.FLAG_AF or
+                    FocusMeteringAction.FLAG_AE or
+                    FocusMeteringAction.FLAG_AWB,
+            ).setAutoCancelDuration(3, TimeUnit.SECONDS)
+            .build()
+
+    val executor = ContextCompat.getMainExecutor(context)
+    val future = activeCamera.cameraControl.startFocusAndMetering(action)
+    future.addListener(
+        {
+            runCatching { future.get() }
+                .onSuccess { result ->
+                    if (result.isFocusSuccessful) {
+                        onFocusLocked()
+                    } else {
+                        onFocusFailed("對焦未鎖定，請再試一次")
+                    }
+                }.onFailure {
+                    onFocusFailed("對焦失敗: ${it.message ?: "unknown error"}")
+                }
+        },
+        executor,
     )
 }

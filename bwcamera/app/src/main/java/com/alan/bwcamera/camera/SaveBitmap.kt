@@ -2,19 +2,59 @@ package com.alan.bwcamera.camera
 
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.graphics.Bitmap
+import androidx.exifinterface.media.ExifInterface
+import com.alan.bwcamera.filter.FilterSettings
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+data class PhotoMetadata(
+    val filterName: String,
+    val brightness: Float,
+    val contrast: Float,
+    val saturation: Float,
+    val filmGrain: Float,
+    val rotationCompensationDegrees: Int,
+) {
+    fun toExifComment(): String =
+        buildString {
+            append("filter=")
+            append(filterName)
+            append("; brightness=")
+            append("%.2f".format(Locale.US, brightness))
+            append("; contrast=")
+            append("%.2f".format(Locale.US, contrast))
+            append("; saturation=")
+            append("%.2f".format(Locale.US, saturation))
+            append("; filmGrain=")
+            append("%.2f".format(Locale.US, filmGrain))
+            append("; rotate=")
+            append(rotationCompensationDegrees)
+        }
+
+    companion object {
+        fun from(settings: FilterSettings): PhotoMetadata =
+            PhotoMetadata(
+                filterName = settings.filter.displayName,
+                brightness = settings.brightness,
+                contrast = settings.contrast,
+                saturation = settings.saturation,
+                filmGrain = settings.filmGrain,
+                rotationCompensationDegrees = settings.rotationCompensationDegrees,
+            )
+    }
+}
+
 fun saveBitmapToMediaStore(
     context: Context,
     bitmap: Bitmap,
+    metadata: PhotoMetadata,
 ): Uri {
     val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
     val filename = "BWCamera_$timestamp.jpg"
@@ -42,6 +82,12 @@ fun saveBitmapToMediaStore(
             }
         } ?: throw IOException("Unable to open output stream")
 
+        writeExifMetadata(
+            context = context,
+            uri = uri,
+            metadata = metadata,
+        )
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val publishValues =
                 ContentValues().apply {
@@ -55,4 +101,20 @@ fun saveBitmapToMediaStore(
     }
 
     return uri
+}
+
+private fun writeExifMetadata(
+    context: Context,
+    uri: Uri,
+    metadata: PhotoMetadata,
+) {
+    val resolver = context.contentResolver
+    resolver.openFileDescriptor(uri, "rw")?.use { descriptor ->
+        val exif = ExifInterface(descriptor.fileDescriptor)
+        exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
+        exif.setAttribute(ExifInterface.TAG_SOFTWARE, "BWCamera")
+        exif.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, "BWCamera ${metadata.filterName} filter")
+        exif.setAttribute(ExifInterface.TAG_USER_COMMENT, metadata.toExifComment())
+        exif.saveAttributes()
+    } ?: throw IOException("Unable to open file descriptor for EXIF metadata")
 }

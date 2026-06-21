@@ -18,6 +18,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -56,11 +58,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -71,6 +78,8 @@ import com.alan.bwcamera.filter.TraditionalFilter
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -110,6 +119,7 @@ fun CameraApp(
     var preview by remember { mutableStateOf<Preview?>(null) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var analyzer by remember { mutableStateOf<ImageAnalysis?>(null) }
+    var focusIndicator by remember { mutableStateOf<FocusIndicator?>(null) }
     var currentTargetRotation by remember {
         mutableStateOf(previewView.display?.rotation ?: Surface.ROTATION_0)
     }
@@ -158,6 +168,14 @@ fun CameraApp(
         analyzer?.targetRotation = currentTargetRotation
     }
 
+    LaunchedEffect(focusIndicator?.id) {
+        val indicator = focusIndicator ?: return@LaunchedEffect
+        delay(1_000)
+        if (focusIndicator?.id == indicator.id) {
+            focusIndicator = null
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -198,7 +216,9 @@ fun CameraApp(
                 CameraPreview(
                     previewView = previewView,
                     previewBitmap = uiState.previewBitmap,
+                    focusIndicator = focusIndicator,
                     onTapToFocus = { x, y ->
+                        focusIndicator = FocusIndicator(x = x, y = y)
                         requestFocusAtPoint(
                             context = context,
                             camera = boundCamera,
@@ -286,9 +306,15 @@ private fun PermissionGate(
 private fun CameraPreview(
     previewView: PreviewView,
     previewBitmap: Bitmap?,
+    focusIndicator: FocusIndicator?,
     onTapToFocus: (x: Float, y: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val density = LocalDensity.current
+    val indicatorSize = 72.dp
+    val indicatorSizePx = with(density) { indicatorSize.toPx() }
+    var previewSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
+
     Box(
         modifier =
             modifier
@@ -306,10 +332,40 @@ private fun CameraPreview(
                 modifier = Modifier.fillMaxSize(),
             )
         }
+        if (focusIndicator != null) {
+            Box(
+                modifier =
+                    Modifier
+                        .offset {
+                            IntOffset(
+                                x =
+                                    (focusIndicator.x - indicatorSizePx / 2f)
+                                        .roundToInt()
+                                        .coerceIn(
+                                            0,
+                                            (previewSize.width - indicatorSizePx).roundToInt().coerceAtLeast(0),
+                                        ),
+                                y =
+                                    (focusIndicator.y - indicatorSizePx / 2f)
+                                        .roundToInt()
+                                        .coerceIn(
+                                            0,
+                                            (previewSize.height - indicatorSizePx).roundToInt().coerceAtLeast(0),
+                                        ),
+                            )
+                        }.size(indicatorSize)
+                        .border(
+                            width = 2.dp,
+                            color = Color.White.copy(alpha = 0.92f),
+                            shape = RoundedCornerShape(14.dp),
+                        ),
+            )
+        }
         Box(
             modifier =
                 Modifier
                     .fillMaxSize()
+                    .onSizeChanged { previewSize = it.toSize() }
                     .pointerInput(onTapToFocus) {
                         detectTapGestures { offset ->
                             onTapToFocus(offset.x, offset.y)
@@ -578,6 +634,12 @@ private fun orientationToSurfaceRotation(orientation: Int): Int =
         in 225..314 -> Surface.ROTATION_90
         else -> Surface.ROTATION_0
     }
+
+private data class FocusIndicator(
+    val x: Float,
+    val y: Float,
+    val id: Long = System.nanoTime(),
+)
 
 private fun requestFocusAtPoint(
     context: Context,

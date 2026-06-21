@@ -16,6 +16,8 @@ class MonochromeFilterEngine {
         val grainSeed = Random.nextInt()
 
         for (index in pixels.indices) {
+            val x = index % width
+            val y = index / width
             val color = pixels[index]
             val alpha = color ushr 24 and 0xFF
             val red = color ushr 16 and 0xFF
@@ -29,7 +31,8 @@ class MonochromeFilterEngine {
                 applyFilmGrain(
                     value = contrastAdjusted,
                     amount = settings.filmGrain,
-                    pixelIndex = index,
+                    x = x,
+                    y = y,
                     seed = grainSeed,
                 )
             val gray = grainAdjusted.coerceIn(0, 255)
@@ -89,7 +92,8 @@ class MonochromeFilterEngine {
     private fun applyFilmGrain(
         value: Int,
         amount: Float,
-        pixelIndex: Int,
+        x: Int,
+        y: Int,
         seed: Int,
     ): Int {
         val grainStrength = amount.coerceIn(0f, 1f)
@@ -97,9 +101,28 @@ class MonochromeFilterEngine {
             return value
         }
 
-        val mixed = pixelIndex * 1103515245 + seed * 12345
-        val noiseUnit = (((mixed xor (mixed ushr 16)) and 0xFF) / 255f) - 0.5f
-        val noise = noiseUnit * grainStrength * 52f
+        val coarseNoise = grainNoise(x shr 1, y shr 1, seed)
+        val fineNoise = grainNoise(x, y, seed xor 0x68bc21eb)
+        val microNoise = grainNoise(x * 2 + 1, y * 2 + 1, seed xor 0x02e5be93)
+        val noiseUnit = coarseNoise * 0.25f + fineNoise * 0.55f + microNoise * 0.20f
+        val highlightTaper = 0.70f + (1f - value / 255f) * 0.30f
+        val noise = noiseUnit * grainStrength * 58f * highlightTaper
         return (value + noise).roundToInt()
+    }
+
+    private fun grainNoise(
+        x: Int,
+        y: Int,
+        seed: Int,
+    ): Float {
+        var mixed = x * 0x1f1f1f1f
+        mixed = mixed xor (y * 0x6d2b79f5)
+        mixed = mixed xor seed
+        mixed = mixed xor (mixed ushr 15)
+        mixed *= 0x2c1b3c6d
+        mixed = mixed xor (mixed ushr 12)
+        mixed *= 0x297a2d39
+        mixed = mixed xor (mixed ushr 15)
+        return (mixed ushr 8 and 0xFFFF) / 32767.5f - 1f
     }
 }

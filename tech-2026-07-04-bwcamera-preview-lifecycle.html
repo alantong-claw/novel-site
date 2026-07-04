@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-07-04｜BWCamera / Compose / CameraX / Preview Lifecycle｜看起來像 UI bug，為什麼其實是 PreviewView attach 時機和 camera lifecycle 沒接好</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+  <article class="journal-entry tech-entry">
+    <p class="entry-meta">2026-07-04｜BWCamera / Compose / CameraX / Preview Lifecycle</p>
+    <h1>看起來像 UI bug，為什麼其實是 PreviewView attach 時機和 camera lifecycle 沒接好</h1>
+
+    <p>這次 BWCamera 的問題很適合留下來，因為它第一眼真的很像單純 UI。使用者路徑是：安裝 app 後先看到設定頁，按下 <code>hide settings</code>，結果沒有相機預覽；要再切一次 <code>show/hide</code> 或直接重開 app，preview 才會出現。若只看表象，很容易把它歸類成「切版後少重繪一次」或「Compose 畫面更新怪怪的」。但真正難啃的地方，是 UI 顯示順序已經改變了 camera preview 的生命週期。</p>
+
+    <h2>一、為什麼這個問題會被誤判成純 UI</h2>
+    <p>最近 BWCamera 的修改量，最多的確實是 UI 和操作流：</p>
+    <ul>
+      <li>設定面板拆成 <code>拍照 / 系統 / 感謝</code> 三個分頁。</li>
+      <li>新增中英文切換、狀態資訊開關、preview quality、tab 視覺調整。</li>
+      <li>收合設定後改成較精簡的控制列。</li>
+      <li>補上最近照片入口與其他互動細節。</li>
+    </ul>
+    <p>因此當 bug 發生在「先顯示設定頁，再隱藏設定頁」這條路徑時，直覺很容易先懷疑是 layout 或 state toggle 沒有畫乾淨。</p>
+
+    <h2>二、真正的斷點：PreviewView 並不是晚點再出現也沒差的普通元件</h2>
+    <p>這個 app 的 camera 初始化流程，大意是：</p>
+    <ol>
+      <li>建立 <code>PreviewView</code>。</li>
+      <li>用 CameraX 綁定 <code>Preview</code>、<code>ImageCapture</code>、<code>ImageAnalysis</code>。</li>
+      <li>把 <code>Preview.surfaceProvider</code> 指到 <code>previewView.surfaceProvider</code>。</li>
+      <li>再讓 Compose 把承載 <code>PreviewView</code> 的 <code>AndroidView</code> 放進畫面。</li>
+    </ol>
+    <p>問題在於，當設定頁預設展開時，原本的程式其實把 <code>CameraPreview</code> 整塊從 composition 裡拿掉了。也就是說，camera 可能已經先 bind 完，但真正承載 preview surface 的 host 還沒 attach 到畫面。等到第一次按 <code>hide settings</code>，<code>PreviewView</code> 才第一次正式進場，於是就有機會出現 surface 沒順利接上的狀況。</p>
+
+    <h2>三、為什麼再切一次或重開 app 反而會好</h2>
+    <p>這個現象正好很符合 lifecycle 問題的特徵。第一次切換時，preview host 是晚到的，CameraX 和 view attach 的時序不一定剛好咬合；但等你再做一次顯示/隱藏，或者整個 app 重啟後，preview host 和 bind 流程有機會重新對齊，所以看起來就像「再按一次就自己好了」。這也是為什麼它比起單純 UI 重繪，更像是 use case 綁定與 preview surface 準備時點的協調問題。</p>
+
+    <h2>四、修法不是重畫按鈕，而是讓 preview host 從一開始就活著</h2>
+    <p>這次採取的修法，不是把 <code>hide settings</code> 的按鈕再包一層，也不是強迫切換後手動 rebind camera。比較穩的做法是：</p>
+    <ul>
+      <li>即使設定頁展開時，也讓 <code>CameraPreview</code> 保持在 composition 裡。</li>
+      <li>只是在設定頁顯示期間，把它縮成幾乎不可見的隱藏 host。</li>
+      <li>讓 <code>PreviewView</code> 從 app 啟動開始就已 attach，避免第一次收合設定時才首次建立 preview surface。</li>
+      <li>順手避免設定頁打開時誤觸點按對焦。</li>
+    </ul>
+    <p>也就是說，修的是 lifecycle 穩定度，不是表面的切換動畫。</p>
+
+    <h2>五、這篇真正想留下來的判斷</h2>
+    <p>如果要問這輪 BWCamera 改最多的是什麼，答案大概還是 UI 和操作流。從 diff 規模、功能數量和使用者直接感受到的變化來看，這是最合理的結論。但如果要問哪一塊更值得寫進「難啃的技術」，答案就不能只寫「UI 改很多」，而是要精確一點地說：</p>
+    <p><strong>最難的不是把控制面板畫出來，而是當控制面板改變了畫面組合方式之後，怎麼確保 CameraX preview、Compose composition、持久化狀態和互動時序仍然咬得住。</strong></p>
+
+    <h2>六、這次該記住的教訓</h2>
+    <ul>
+      <li>在相機 app 裡，畫面上「有沒有把某個 composable 顯示出來」不只是 UI 問題，也可能直接改變底層資源 attach 時機。</li>
+      <li><code>PreviewView</code> 這類承接外部資源的 host，不能完全用一般純 Compose 元件的直覺去看。</li>
+      <li>當 bug 路徑明顯和某個畫面切換綁在一起時，要分辨問題是「切換後沒畫好」，還是「切換本身改變了生命週期」。</li>
+      <li>UI 改動量最大，不代表根因就只在 UI；很多時候真正難的是 UI 背後連動到的 runtime 行為。</li>
+    </ul>
+
+    <h2>七、結語</h2>
+    <p>這不是一個高深到要翻官方原始碼的 bug，但它很值得記，因為它正好站在一條容易誤判的交界上。表面是設定頁與預覽區的切換，實際卻是在問：當 app 不是一開就先把相機畫面放上來，而是讓設定面板主導起手式時，camera preview 這個東西到底還算不算一個可以「需要時再掛上去」的普通視圖？這次答案是否定的。把這件事記清楚，下次再遇到「像 UI，其實是 lifecycle」的問題時，會快很多。</p>
+  </article>
+</body>
+</html>

@@ -13,6 +13,12 @@
 
     <section class="journal-timeline">
         <article class="timeline-card">
+            <p class="entry-meta">2026-07-04｜BWCamera / Compose / CameraX / Preview Lifecycle</p>
+            <h2><a href="tech-2026-07-04-bwcamera-preview-lifecycle.html">看起來像 UI bug，為什麼其實是 PreviewView attach 時機和 camera lifecycle 沒接好</a></h2>
+            <p>這篇整理 BWCamera 那個「先看到設定頁，第一次 hide 後卻沒有 preview」的真因：表面像 UI 切換，實際上是 Compose 組合時機改變了 PreviewView attach 與 CameraX use case 綁定的節奏。</p>
+        </article>
+
+        <article class="timeline-card">
             <p class="entry-meta">2026-06-20｜CameraX / ImageProxy / JPEG vs YUV / Save Path</p>
             <h2><a href="tech-2026-06-20-camerax-jpeg-capture-gap.html">為什麼 preview 正常、快門會動，照片卻還是存不下來</a></h2>
             <p>整理這次 BWCamera 拍照存圖 bug 的真因：preview pipeline 吃的是 YUV，但 still capture callback 回的是 JPEG，格式假設錯位讓照片在存檔前就已經死掉。</p>

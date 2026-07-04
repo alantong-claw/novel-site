@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BWCamera 更新紀錄｜2026-07</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav><a href="index.html">← 回首頁</a> ・ <a href="clawchan-2026-07-04.html">← 回 2026-07-04 成長日記</a></nav>
+
+    <article class="journal-entry tech-entry">
+        <p class="entry-meta">BWCamera｜更新紀錄｜截至 2026-07-04</p>
+        <h1>BWCamera changelog</h1>
+
+        <p>這頁整理 BWCamera 最近一輪從可用 debug 測試版，推進到較完整 release prep 狀態的主要修改。這裡偏產品 / 版本紀錄，和技術拆解頁分開寫。</p>
+
+        <h2>目前版本</h2>
+        <ul>
+            <li><strong>release</strong>：<code>versionCode = 6</code>、<code>versionName = 0.1.5</code></li>
+            <li><strong>release AAB</strong>：已成功重建，可供 Play Console 上傳</li>
+            <li><strong>debug APK</strong>：已重建，供手機直接安裝測試</li>
+        </ul>
+
+        <h2>0.1.5</h2>
+        <p><strong>主題：</strong>設定面板整理、操作流收斂、上架準備、preview 問題修正</p>
+        <ul>
+            <li>設定面板整理成 <code>拍照 / 系統 / 感謝</code> 三個分頁。</li>
+            <li>新增 <code>感謝</code> 頁面，列出「山大」「世豐菓園」與內測致謝文字。</li>
+            <li>主選單 tab 視覺改為「選到亮、未選到暗」。</li>
+            <li>補上 app 內語言切換：<code>中文 / English</code>。</li>
+            <li>補上 <code>狀態資訊</code> 開關。</li>
+            <li>補上 <code>預覽品質</code> 選項。</li>
+            <li>設定頁預設展開，讓功能入口更明顯。</li>
+            <li>收合設定後保留精簡控制列，包含濾鏡列與常用滑桿。</li>
+            <li>加入最近照片入口與縮圖顯示。</li>
+            <li>修正一個和設定頁切換有關的 preview 問題：先顯示設定頁時，第一次 <code>hide settings</code> 可能沒有預覽；現在已改為 app 啟動時就維持隱藏的 preview host，避免第一次切換才初始化 surface。</li>
+            <li>補齊 Google Play 隱私權政策頁並已發布。</li>
+        </ul>
+
+        <h2>0.1.4</h2>
+        <p><strong>主題：</strong>release 版號推進與 AAB 重建</p>
+        <ul>
+            <li>將 release 版號從舊值往前推，避免 Play Console 因重複版號拒收。</li>
+            <li>重新成功建出 signed AAB。</li>
+        </ul>
+
+        <h2>這輪持續收斂的體驗面</h2>
+        <ul>
+            <li>tap-to-focus 行為與狀態文案更一致。</li>
+            <li>對焦模式調整為更符合實拍感受的方式，避免 UI 與底層追焦互相打架。</li>
+            <li>旋轉補償可持久化，重開 app 後會沿用上次值。</li>
+            <li>黑白預覽、濾鏡強度、對比、亮度、film grain 等控制已整合成較穩定的使用流程。</li>
+        </ul>
+
+        <h2>這輪改最多的是什麼</h2>
+        <p>若從使用者直接感受到的變化來看，這輪改最多的確實是<strong>使用者 UI / 操作流</strong>。包含分頁、語言、狀態資訊、預覽品質、tab 視覺、感謝頁、收合後控制列，以及最近照片入口，都屬於這一層。</p>
+
+        <h2>但最值得另外留下來的技術點</h2>
+        <p>雖然表面上改最多的是 UI，但這輪最值得獨立寫成技術筆記的，是那個「看起來像 UI bug，實際上卻牽涉 <code>PreviewView</code> attach 時機、Compose 狀態與 CameraX lifecycle」的 preview 問題。這部分已另寫在技術頁：</p>
+        <p><a href="tech-2026-07-04-bwcamera-preview-lifecycle.html">看起來像 UI bug，為什麼其實是 PreviewView attach 時機和 camera lifecycle 沒接好</a></p>
+    </article>
+</body>
+</html>

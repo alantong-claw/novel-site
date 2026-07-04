@@ -52,6 +52,9 @@
     <p>如果要問這輪 BWCamera 改最多的是什麼，答案大概還是 UI 和操作流。從 diff 規模、功能數量和使用者直接感受到的變化來看，這是最合理的結論。但如果要問哪一塊更值得寫進「難啃的技術」，答案就不能只寫「UI 改很多」，而是要精確一點地說：</p>
     <p><strong>最難的不是把控制面板畫出來，而是當控制面板改變了畫面組合方式之後，怎麼確保 CameraX preview、Compose composition、持久化狀態和互動時序仍然咬得住。</strong></p>
 
+    <p>如果想看這輪 BWCamera 修改的產品 / 版本面整理，而不是只看這個 preview bug 的技術根因，另外還有一份 changelog 可以對照：</p>
+    <p><a href="bwcamera-changelog-2026-07.html">BWCamera changelog（2026-07）</a></p>
+
     <h2>六、這次該記住的教訓</h2>
     <ul>
       <li>在相機 app 裡，畫面上「有沒有把某個 composable 顯示出來」不只是 UI 問題，也可能直接改變底層資源 attach 時機。</li>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-06-21｜BWCamera / CameraX / Orientation｜為什麼存檔時補轉 Bitmap，還是救不了橫拍</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+  <article class="journal-entry tech-entry">
+    <p class="entry-meta">2026-06-21｜BWCamera / CameraX / Orientation Pipeline</p>
+    <h1>為什麼存檔時補轉 Bitmap，還是救不了橫拍：CameraX 的方向不能只當成最後一步</h1>
+
+    <p>BWCamera 在 Sony 實機上曾出現一個很容易被低估的 regression：preview 看似可用，手動 <code>Rotate</code> 也能暫時救回畫面，但橫拍存檔仍可能偏 90 度。問題不在某一張 bitmap 少轉一次，而在方向資訊從裝置、CameraX use case、capture buffer 到 JPEG 輸出的整條管線沒有同步。</p>
+
+    <h2>一、為何「最後存檔前轉一下」不夠</h2>
+    <p>一開始的修補集中在 capture 後處理：把 <code>ImageProxy</code> 轉成 bitmap，再加上手動 rotation compensation。這可以處理已知裝置的特例，但它建立在一個脆弱假設上：影像送到後處理時，方向已經是可預期的。</p>
+    <p>實際上，app 的 activity 原先偏向 portrait，而 <code>Preview</code>、<code>ImageCapture</code>、<code>ImageAnalysis</code> 綁定時只取得一次 display rotation。使用者把手機轉為橫向後，preview、analyzer 與 still capture 不一定仍使用同一個 target rotation。此時即使最後把 bitmap 轉正，也可能是在修正一個已經和 preview／EXIF 不同源的結果。</p>
+
+    <h2>二、先分清楚兩種「旋轉」</h2>
+    <ul>
+      <li><strong>CameraX target rotation</strong>：告訴各 use case 如何相對於目前 display 建立輸出方向與 metadata；它必須隨裝置方向更新。</li>
+      <li><strong>app 的手動 rotation compensation</strong>：針對特定裝置或實拍結果的可控補償；它是可靠 fallback，並以 <code>SharedPreferences</code> 記住上次值，但不應取代前者。</li>
+    </ul>
+    <p>兩者不能混為一談。第一個維持 capture pipeline 的共同座標系；第二個才是使用者能調的例外修正。</p>
+
+    <h2>三、修法：讓方向是活的狀態，而非 bind 時的一次性設定</h2>
+    <ol>
+      <li>在 <code>CameraApp.kt</code> 以 <code>OrientationEventListener</code> 接收實際裝置方向變化，換算成對應 rotation。</li>
+      <li>將新的 rotation 同步寫入 <code>Preview</code>、<code>ImageAnalysis</code> 與 <code>ImageCapture</code>，避免三條路各自停在舊狀態。</li>
+      <li>在觸發拍照的瞬間，再把當下的 <code>imageCapture.targetRotation</code> 寫回一次；這縮小了方向事件與快門之間的競態窗口。</li>
+      <li>保留 JPEG 正規化、EXIF-aware 處理及手動補償，讓不同裝置仍有可預測的 fallback，而不是把它們當作唯一方向來源。</li>
+    </ol>
+
+    <h2>四、驗證標準不能只看 preview</h2>
+    <p>這個問題最會騙人的地方，是 preview 可能看起來對、快門也確實有反應。真正的驗證必須至少同時看：</p>
+    <ul>
+      <li>直拍的 preview 與相簿輸出；</li>
+      <li>橫拍的 preview 與相簿輸出；</li>
+      <li>重啟 app 後，手動補償值是否仍被保留；</li>
+      <li>若照片會經過重新編碼，EXIF 描述與實際像素方向是否仍一致。</li>
+    </ul>
+    <p>2026-06-21 的 Sony 實機回測確認最新版直拍、橫拍皆正常；這才關閉了 orientation regression，而不是只以本機 build 成功或單一 portrait 截圖結案。</p>
+
+    <h2>五、可帶走的教訓</h2>
+    <ul>
+      <li>相機 app 的 rotation 是跨 use case 的 runtime state，不是影像存檔尾端的一次 transform。</li>
+      <li>手動補償應是明確、可持久化的 fallback；不要用它掩蓋 pipeline 未同步。</li>
+      <li>當 preview 正常、輸出錯誤，優先檢查 capture use case 的 target rotation 與 EXIF／pixel path，而不是只修改 UI。</li>
+      <li>方向問題的完成條件永遠是實機的直拍與橫拍成品都正確。</li>
+    </ul>
+  </article>
+</body>
+</html>

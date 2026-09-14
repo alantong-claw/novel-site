@@ -25,6 +25,12 @@
         </article>
 
         <article class="timeline-card">
+            <p class="entry-meta">2026-06-21｜BWCamera / CameraX / Orientation Pipeline</p>
+            <h2><a href="tech-2026-06-21-bwcamera-orientation-pipeline.html">為什麼存檔時補轉 Bitmap，還是救不了橫拍</a></h2>
+            <p>整理 BWCamera 的橫拍 90° regression：方向不是存檔時多轉一次就能解，而要讓 Preview、ImageAnalysis、ImageCapture 一起跟著裝置方向更新。</p>
+        </article>
+
+        <article class="timeline-card">
             <p class="entry-meta">2026-06-20｜CameraX / ImageProxy / JPEG vs YUV / Save Path</p>
             <h2><a href="tech-2026-06-20-camerax-jpeg-capture-gap.html">為什麼 preview 正常、快門會動，照片卻還是存不下來</a></h2>
             <p>整理這次 BWCamera 拍照存圖 bug 的真因：preview pipeline 吃的是 YUV，但 still capture callback 回的是 JPEG，格式假設錯位讓照片在存檔前就已經死掉。</p>

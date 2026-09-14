@@ -13,6 +13,12 @@
 
     <section class="journal-timeline">
         <article class="timeline-card">
+            <p class="entry-meta">2026-09-14｜Landscape Camera / Burst Alignment / Motion Mask</p>
+            <h2><a href="tech-2026-09-14-landscape-camera-motion-mask.html">絲滑水流為什麼會把靜物切成方塊：不是濾鏡，而是 burst 對齊與遮罩的交界</a></h2>
+            <p>將水流模式的破圖拆成 reference、對齊、motion mask 與合成四層，說明為何曝光微跳、JPEG 雜訊與孤立遮罩會傷到靜物，以及如何以連通區保護它。</p>
+        </article>
+
+        <article class="timeline-card">
             <p class="entry-meta">2026-07-04｜BWCamera / Compose / CameraX / Preview Lifecycle</p>
             <h2><a href="tech-2026-07-04-bwcamera-preview-lifecycle.html">看起來像 UI bug，為什麼其實是 PreviewView attach 時機和 camera lifecycle 沒接好</a></h2>
             <p>這篇整理 BWCamera 那個「先看到設定頁，第一次 hide 後卻沒有 preview」的真因：表面像 UI 切換，實際上是 Compose 組合時機改變了 PreviewView attach 與 CameraX use case 綁定的節奏。</p>

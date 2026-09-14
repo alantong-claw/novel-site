@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-09-14｜Landscape Camera / Burst Alignment / Motion Mask｜絲滑水流為什麼會把靜物切成方塊</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+  <article class="journal-entry tech-entry">
+    <p class="entry-meta">2026-09-14｜Landscape Camera / Burst Alignment / Motion Mask</p>
+    <h1>絲滑水流為什麼會把靜物切成方塊：不是濾鏡，而是 burst 對齊與遮罩的交界</h1>
+
+    <p>Landscape Camera 的「水流」模式，目標是把一小段連拍影格合成：水這類非剛體運動可以取時間平均，靜態建物、器具與邊緣則應保留 reference frame。它不是單純的全圖平均；若每個像素都平均，任何手持拍攝留下的微小幾何殘差都會變成重影。</p>
+
+    <h2>一、先把「破圖」拆成可判別的三層</h2>
+    <p>同一組 burst 會產出三個特意分離的結果：</p>
+    <ul>
+      <li><code>10_force_static_mask0</code>：mask 強制為零，只取 reference。若它已經異常，問題在擷取或 reference，而不在合成。</li>
+      <li><code>11_force_dynamic_mask1</code>：mask 強制為一，將對齊後影格全圖平均。若它有全畫面多重輪廓，先查 alignment。</li>
+      <li><code>12_normal_mask</code>：實際 motion mask 的輸出。前兩者正常、只有它異常，才表示遮罩或混合決策有問題。</li>
+    </ul>
+    <p>這個 A/B/C 分流避免了最常見的誤診：看見正常輸出有方塊，就直接去調濾鏡或 JPEG 品質。那些參數可能影響觀感，但不能回答方塊是在擷取、幾何對齊、motion 判定，還是最後 compositing 才出現。</p>
+
+    <h2>二、對齊要先過關，mask 才有意義</h2>
+    <p>強制平均與 checker 圖曾顯示全畫面殘餘位移。根因不是色彩格式，而是旋轉候選影格在 alignment pyramid 中被重複 downsample，與 reference 落在不同尺度上比對。修正後，checker 用 red/green 顯示兩張影格的亮度：輪廓重合時偏綠可以是曝光或白平衡差；若出現紅綠雙邊，才是幾何未對齊。</p>
+    <p>即使對齊改善，全圖平均仍可能略糊，因為次像素殘差會被平均放大。它是診斷輸出，不是水流模式應該交付的結果；正式路徑必須讓靜態區留在 reference。</p>
+
+    <h2>三、最危險的是把靜態邊緣誤判成局部水流</h2>
+    <p>正常 mask 起初會在水龍頭、金屬邊緣一帶產生小方塊。對齊後的影格本身正常，問題於是收斂到遮罩：局部平均把 JPEG ringing、高光殘差或逐張曝光微跳當成動態，於是在 reference 與 temporal average 間硬切換。高反差邊緣會讓這種切換特別明顯。</p>
+    <p>一度讓判斷更困難的是診斷圖：motion weight 是 <code>0..1</code>，但輸出灰階時沒有乘到 <code>0..255</code>，所以幾乎全黑。那張圖不能證明「遮罩沒作用」；它只是把作用區畫得不可見。先修診斷，才看得見背景被過度判成動態的真相。</p>
+
+    <h2>四、修法：讓動態判定具備時間穩定性與空間連續性</h2>
+    <ol>
+      <li>在 burst 前鎖定 AE 與 AWB，結束後恢復原先 AE 設定，減少影格間非場景造成的亮度與白平衡跳動。</li>
+      <li>估計並扣除每一張相對 reference 的全域亮度偏移，再計算局部 temporal difference；不要把整張畫面變亮誤讀成水在流。</li>
+      <li>以 21×21 的局部鄰域估計 motion，並在明顯靜態邊緣設 guard，避免單像素殘差主導合成。</li>
+      <li>只保留達門檻的連通 motion component；面積太小的孤立區歸零。真實水流通常佔一片連續區域，規格反光與 JPEG 雜訊通常不是。</li>
+      <li>把最終 mask 正確輸出為 <code>0..255</code> 的 debug 圖，讓白／灰區能直接對照「哪些像素真的採用平均」。</li>
+    </ol>
+
+    <h2>五、目前證據與仍需驗證的邊界</h2>
+    <p>相關 unit tests 和 debug APK 已在本機通過；靜態場景的診斷結果已把全域 registration 問題與 normal-mask 局部破圖分開。這不足以宣稱所有水景都完成：下一個必要驗證是以同一實景重拍，確認 <code>12_normal_mask</code> 不再破壞靜物、而水面仍有可見的時間平滑。這類演算法的交付標準不是「程式能 build」，而是最終照片把動態留給水、把細節留給靜物。</p>
+
+    <h2>六、可帶走的判斷</h2>
+    <ul>
+      <li>先隔離 source、registration、mask、composite；不要從最後一張壞圖直接猜 root cause。</li>
+      <li>diagnostic output 也是產品的一部分。尺度畫錯，會讓正確資料導向錯誤結論。</li>
+      <li>手持 burst 的靜態保護應以 reference 為預設，平均只是一項需要證明合理的例外。</li>
+      <li>motion mask 不是越敏感越好；能拒絕孤立假訊號，才不會用一小塊假動態換來一大片靜物破壞。</li>
+    </ul>
+  </article>
+</body>
+</html>

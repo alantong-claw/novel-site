@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-09-16｜Landscape Camera / CameraX / Orientation｜同一個 analysis frame 為何不能同時當 preview 與成片</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+  <article class="journal-entry tech-entry">
+    <p class="entry-meta">2026-09-16｜Landscape Camera / CameraX / Water Capture / Orientation</p>
+    <h1>同一個 analysis frame 為何不能同時當 preview 與成片：把方向契約拆開，才不會修 A 壞 B</h1>
+
+    <p>Landscape Camera 的水流模式以 <code>ImageAnalysis</code> 串流收集連續影格，同時也用較低頻率的分析 bitmap 更新 live preview。最初兩者共用 <code>ImageProxy.toNormalizedBitmap()</code>：它先依 CameraX 的 <code>rotationDegrees</code> 旋轉，處理裝置特例，最後再強制轉為 portrait。這對原本固定直式操作的 preview 是合理的，但不等於它也是水流成片正確的像素方向。</p>
+
+    <h2>一、先寫清楚兩條方向契約</h2>
+    <table>
+      <thead><tr><th>consumer</th><th>它服務的對象</th><th>方向責任</th></tr></thead>
+      <tbody>
+        <tr><td>live preview bitmap overlay</td><td>直式 activity 中的使用者與 Compose overlay</td><td>沿用既有 portrait 座標約定；操作姿勢的驗收優先。</td></tr>
+        <tr><td>water burst collector</td><td>對齊、motion mask、合成與最終 MediaStore 輸出</td><td>保留 CameraX rotation 加裝置補償後的 capture 方向；不可再因 preview 而強制轉直。</td></tr>
+      </tbody>
+    </table>
+    <p>它們可以解碼自同一個 sensor frame，卻不該共用同一份「已完成所有方向處理」的 bitmap。後者其實把其中一條路的 UI 假設，偷偷變成另一條路的輸出規格。</p>
+
+    <h2>二、這次為何看起來像 CameraX rotation bug</h2>
+    <p>在修成片方向時，先拿掉了強制 portrait。橫拍成片改善，但 live preview 隨之不符合原本已驗證的直式 UI。後續改成 <code>fullSensor</code> activity、raw <code>PreviewView</code>、以及在方向事件重新 bind use case，都各自改變了更多東西：activity 座標、控制列 layout、surface lifecycle 與 CameraX target rotation。實機上很快出現「影像對了，但控制介面亂掉」與反向姿勢倒置。</p>
+    <p>這說明方向議題至少分三層：<code>activity/UI orientation</code>、CameraX use case 的 <code>targetRotation</code>、以及每個 bitmap consumer 的像素方向。前兩層的確應維持一致；但第三層不能只因為一張 bitmap 被叫作 normalized，就假設它適合每個 consumer。</p>
+
+    <h2>三、最小修法：分開 decode 後的用途，而不是重做整條預覽管線</h2>
+    <ol>
+      <li>把原本的 decode + CameraX rotation + 裝置補償抽成 <code>toCaptureBitmap()</code>。</li>
+      <li>讓 water collector 使用 <code>toCaptureBitmap()</code>，不套 portrait-only transform。</li>
+      <li>讓 preview 從該 bitmap 的獨立 copy 產生，再套 <code>ensurePortraitForPreview()</code>；它只能影響顯示，不可回寫或回收 capture 影格。</li>
+      <li>還原已驗證的 portrait activity、overlay preview 與原本 bind 行為；不為這個輸出問題改動活動方向、控制列或 surface 策略。</li>
+    </ol>
+    <p>這個設計多了一次 preview copy，但它只在既有的 preview stride 上發生；相較於用一套全新的 activity／surface rotation 設計去處理一個輸出分支問題，成本小且責任清楚。</p>
+
+    <h2>四、回歸測試必須分兩組</h2>
+    <ul>
+      <li><strong>操作面：</strong>直拿、橫拿、倒拿進入 preview，文字與控制列可讀、觸控座標正確、畫面不在水流收集時跳轉。</li>
+      <li><strong>輸出面：</strong>同樣三種姿勢實拍水流，確認最後合成檔實際像素方向正確，不只看預覽或 EXIF。</li>
+      <li><strong>不可混用：</strong>如果 preview 正常但成片錯，只檢查 collector／merge／save 的方向資料；不要先動 activity 或 PreviewView。反之亦然。</li>
+    </ul>
+
+    <h2>五、給下一次的排查順序</h2>
+    <ol>
+      <li>先標記錯的是 live preview、分析 debug 圖、還是最終成片；把它們當不同產品輸出。</li>
+      <li>找出它們最後一次共用 bitmap 的位置，以及該 bitmap 已套用了哪些 transforms。</li>
+      <li>若只有一端錯，先在 consumer boundary 分流；不要改 activity orientation 或全數重綁 CameraX use case。</li>
+      <li>只有 preview、ImageAnalysis、ImageCapture 都同時錯，才回頭檢查 target rotation 的活狀態與 surface lifecycle；可參考 <a href="tech-2026-06-21-bwcamera-orientation-pipeline.html">BWCamera 的 orientation pipeline 記錄</a>。</li>
+      <li>最後一定由實機的正常／反向姿勢與成片驗收結案。</li>
+    </ol>
+
+    <p>這次最終由實機確認 preview、控制與水流成片皆正確。可重用的結論不是「永遠 force portrait」或「永遠 fullSensor」，而是讓每個 consumer 明確擁有自己的方向契約，並只在真正需要的邊界做 transform。</p>
+  </article>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-09-17｜Landscape Camera / CameraX / Manual Exposure｜沒有 capture metadata 時，如何讓水流快門真的可驗證</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+  <article class="journal-entry tech-entry">
+    <p class="entry-meta">2026-09-17｜Landscape Camera / CameraX / Camera2 / EXIF / Manual Exposure</p>
+    <h1>沒有 capture metadata 時，如何讓水流快門真的可驗證：EXIF 測光、手動 request 與管線 settle</h1>
+
+    <p>水流模式的目標不是把一個「最慢快門」標籤顯示在 UI，而是在不破壞曝光的前提下，讓連續收集的每一張影格盡可能使用使用者選定的長快門。這篇記錄一個容易被 UI 掩蓋的失敗：滑桿可動、request 程式也存在，實機卻仍由 AE 拍攝。要把它收好，必須把<strong>測光來源、曝光計算、request 套用與取樣穩定</strong>分開驗證。</p>
+
+    <h2>一、先定義曝光策略，而不是直接鎖一組快門／ISO</h2>
+    <p>假設手機鏡頭光圈固定，先以標準 AE 取得曝光樣本 <code>(T<sub>ae</sub>, ISO<sub>ae</sub>)</code>。其曝光乘積可近似為：</p>
+    <p><code>P = T<sub>ae</sub> × ISO<sub>ae</sub></code></p>
+    <p>使用者選的是最慢允許快門 <code>T<sub>limit</sub></code>，不是無條件強迫值。以鏡頭的快門和 ISO 範圍計算：</p>
+    <ol>
+      <li><code>T = min(T<sub>limit</sub>, T<sub>sensor-max</sub>, P / ISO<sub>min</sub>)</code></li>
+      <li><code>ISO = ceil(P / T)</code></li>
+      <li>若 ISO 超出感光元件範圍，不能假裝成功；回退 AE 並在 debug 指明原因。</li>
+    </ol>
+    <p>因此強光下，即使使用者選 1/30，系統也可能必須保留更短的快門；暗處則可把快門拉到 1/30 或更慢，並以 ISO 補回曝光。這是「不過曝」與「保留水流時間積分」同時成立的必要條件。可變光圈鏡頭若可控制，才應把光圈項一併納入；多數手機主鏡頭並不具備這個選項。</p>
+
+    <h2>二、踩到的陷阱：ImageAnalysis 的 ImageInfo 不是 Camera2 CaptureResult</h2>
+    <p>原本的做法嘗試從 <code>ImageAnalysis</code> 的 <code>ImageProxy.imageInfo</code> 轉成 CameraX internal 的 <code>CameraCaptureResultImageInfo</code>，再讀 <code>SENSOR_EXPOSURE_TIME</code> 與 <code>SENSOR_SENSITIVITY</code>。這不是可靠契約。實測裝置回傳的是 <code>AutoValue_ImmutableImageInfo</code>；它提供 timestamp 與 rotation，卻沒有 Camera2 result。</p>
+    <p>結果不是 crash，而是更危險的靜默退化：沒有 AE 樣本，手動 profile 回傳 null；水流 burst 重新啟用 AE；使用者仍看見快門滑桿，卻拍到 33ms 或 66.9ms 的 AE cadence。這也是為什麼不能只從「選了 1/10」推論「每張就是 1/10」。</p>
+
+    <h2>三、可靠的測光邊界：暫存一張正常 AE JPEG，讀 EXIF</h2>
+    <p>在本裝置上，<code>ImageCapture</code> 正常保存 JPEG 的 EXIF 是可讀的公開資料。新的 burst 起點如下：</p>
+    <ol>
+      <li>清除上一輪手動狀態，開啟正常 AE、鎖 AWB。</li>
+      <li>拍一張寫入 app cache 的暫存 JPEG，不進 MediaStore／相簿。</li>
+      <li>由 EXIF 讀出 <code>TAG_EXPOSURE_TIME</code> 與 <code>TAG_PHOTOGRAPHIC_SENSITIVITY</code>，形成新鮮的 <code>AutoExposureSample</code>。</li>
+      <li>立刻刪除暫存檔，以該樣本計算 manual profile。</li>
+      <li>設定 <code>CONTROL_AE_MODE_OFF</code>、<code>SENSOR_EXPOSURE_TIME</code>、<code>SENSOR_SENSITIVITY</code>，才啟動連續 water collector。</li>
+    </ol>
+    <p>這多了一張計量照與少量等待，但它把不可靠的 internal cast 換成實際相機已寫出的曝光資料。這比「估一個 ISO」更慢一些，卻是正確性與可解釋性都更好的取捨。</p>
+
+    <h2>四、request 接受不代表下一張已是手動曝光</h2>
+    <p>另一個容易忽略的層是 pipeline latency。首次實測設定 1/10 時，timing artifact 先出現 33.3、33.3、23.8ms，隨後才穩定於 94.4ms；設定 1/5 時則穩定於 188.8ms。這證明手動快門最終已生效，也證明前面幾張仍是舊 AE request 留在串流中的產物。</p>
+    <p>不要把切換中的影格塞進時間平均。現行策略是在送出 manual request 後等待 600ms，才允許 collector 開始收集。等待本身不算進 1.4 秒的正式整合窗，因此不會用過渡影格換取更多張數。未來若有可讀的 per-frame capture result，可把固定等待換成「收到連續 N 張符合 request 的 metadata 才開始」；在這台缺少 analysis metadata 的裝置上，固定且經實測的 flush window 是較誠實的做法。</p>
+
+    <h2>五、debug 應回答的問題</h2>
+    <p><code>22_capture_timing</code> 現在必須把以下資訊放在同一張圖裡：</p>
+    <ul>
+      <li><strong>requested shutter / ISO</strong>：manual profile 是否真的被算出並送出。</li>
+      <li><strong>manual reason</strong>：無法進手動時，是沒有新 AE 樣本、裝置沒有 <code>MANUAL_SENSOR</code>、範圍不可用，還是 ISO 無法落在合法範圍。</li>
+      <li><strong>AE meter</strong>：樣本來自 ImageCapture EXIF，或是 EXIF 失敗後使用的 fallback；不可把缺 metadata 藏成空白。</li>
+      <li><strong>capture intervals</strong>：驗證 frame duration 是否接近 request，並找出切換期舊 AE 影格。</li>
+      <li><strong>camera reported</strong>：若 analysis stream 沒有 capture result，應如實顯示 unavailable；它不是 request 已失敗的同義詞。</li>
+    </ul>
+
+    <h2>六、驗收與未結案邊界</h2>
+    <p>本機 unit tests 與 debug APK build 已通過；實機已確認 manual profile 可以計算，並量到 1/10 約 94.4ms、1/5 約 188.8ms 的穩定間隔。初步水流與曝光也正常。這不等於「長快門曝光問題完全結案」：下一個必要驗證是在強光下選到接近 1 秒，確認演算法會因最低 ISO 與感光元件限制而縮短快門、避免過曝，而不會硬鎖成白圖。</p>
+
+    <h2>七、下次遇到類似問題的排查順序</h2>
+    <ol>
+      <li>先分開問：UI 選值、manual profile、Camera2 request、實際 cadence，哪一層失效？</li>
+      <li>不要依賴未公開的 <code>ImageInfo</code> internal 實作來取得關鍵測光資料。</li>
+      <li>若沒有 per-frame metadata，選擇一個可驗證的正式測光邊界，例如 EXIF JPEG；明確寫出它的成本。</li>
+      <li>用 request 值與 timing artifact 一起驗收，不以單一數字猜整條管線。</li>
+      <li>手動／AE request 切換後先 flush；過渡影格不應進 temporal merge。</li>
+      <li>只在真實水景確認曝光、水流連續性與靜態保護都正常後才結案。</li>
+    </ol>
+  </article>
+</body>
+</html>

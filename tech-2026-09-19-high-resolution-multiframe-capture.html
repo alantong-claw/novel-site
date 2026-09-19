@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-09-19｜Landscape Camera / CameraX / Camera2｜高解析疊圖不能只改 ImageAnalysis</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+  <article class="journal-entry tech-entry">
+    <p class="entry-meta">2026-09-19｜Landscape Camera / CameraX / Camera2 / Multi-frame / Resolution / Memory</p>
+    <h1>高解析疊圖不能只改 <code>ImageAnalysis</code>：把 preview、still capture 與處理尺寸分成三條契約</h1>
+
+    <p>Landscape Camera 的水流、去除移動物、防手震長曝與 HDR 都是多張疊圖；它們共享「對齊後合成」的結果，卻不共享相同的擷取責任。這篇記錄一次實機導向的收斂：從 480×640／640×480 成片、CameraX 交出方形 1080×1080 與橫拿 preview regression，一路到獨立 Camera2 JPEG still capture 取得約 2524×1892 的真實高解析水流成片。</p>
+
+    <h2>一、先釘住基本事實：處理上限不會產生來源沒有的像素</h2>
+    <p>若 collector 拿到的是 640×480 <code>ImageAnalysis</code> bitmap，將「處理長邊」設定成 2560 或 3840，只能避免它再被縮小；不能使輸出變成真高解析。任何共同解析度選項都必須在<strong>有足夠像素的來源之後</strong>才有意義。</p>
+    <p>因此 debug artifact 至少要同時顯示：</p>
+    <ul>
+      <li>APK version／revision；避免誤驗舊版。</li>
+      <li><code>ImageProxy</code> 原始尺寸與轉換後 bitmap 尺寸。</li>
+      <li>CameraX 實際 bound 尺寸，不只程式要求的 target size。</li>
+      <li>目前鏡頭宣告的可用 YUV／JPEG 尺寸。</li>
+      <li>最終輸出尺寸與走過的 fallback。</li>
+    </ul>
+    <p>這次的關鍵證據是：相機宣告有 4000×3000 YUV，CameraX bound／ImageProxy 仍可能只交出 1080×1080 或 1440×1080。硬體支援、框架協商與應用實收影格是三個不同層次。</p>
+
+    <h2>二、為何「把 CameraX analysis 拉高」會連 preview 一起壞</h2>
+    <p><code>Preview</code>、<code>ImageAnalysis</code> 與 <code>ImageCapture</code> 綁進同一個 CameraX session 時，不是各取各的最大解析度，而是由裝置可用 stream 組合協商。將 <code>ResolutionSelector</code> 或 <code>setTargetResolution</code> 套到常駐 analysis，可能發生：</p>
+    <ul>
+      <li>請求 4:3 高解析，實際退化為 square 1080×1080。</li>
+      <li>升至 1440×1080，卻改變 preview 的格式／旋轉條件，造成橫拿 preview regression。</li>
+      <li>只綁 high-resolution analysis 看似能解除競爭，裝置卻不交付任何影格。</li>
+      <li>在不相容的 YUV conversion 路徑出現斜紋；這不是合成演算法問題。</li>
+    </ul>
+    <p>結論不是「永遠不用 CameraX」，而是<strong>常駐 preview 的契約不得用來交換特定模式的輸出解析度</strong>。保持已驗證的 portrait activity／analyzer overlay preview 管線；高解析 capture 應在模式自己的邊界處切換。</p>
+
+    <h2>三、依模式選擇擷取邊界</h2>
+    <p>四個模式可以共用對齊、處理尺寸與儲存政策，但不是同一條 capture pipeline：</p>
+    <ul>
+      <li><strong>水流：</strong>先在正常 CameraX session 拍暫存 AE JPEG、讀 EXIF 計量；之後短暫進入獨立 Camera2 JPEG still session，從 4000×3000 級來源連續取得影格。每張立刻縮至選定工作長邊，再進水流合成。Camera2 失敗或不足最低張數時，明確回退到已驗證的 1440 CameraX 路徑並寫狀態。</li>
+      <li><strong>防手震長曝：</strong>短時間連續取樣，可用同一條獨立高解析 JPEG 路徑；使用者選單張快門與 2–16 張，對齊後做全圖平均。</li>
+      <li><strong>去除移動物／people removal：</strong>取樣間隔可長達 10 秒，使用者需要持續看 live view 穩定手持構圖。因此保留正常 CameraX preview，使用 full-resolution <code>ImageCapture</code> 逐張取得 JPEG；不要為了高解析切進會凍結 preview 的獨占 session。背景由銳利 reference 保留，動態區才採時間中位數。</li>
+      <li><strong>HDR：</strong>以 <code>ImageCapture</code> 拍標準與 bracket JPEG，3 張為 <code>0, ±maxEV</code>；5 張為 <code>0, ±maxEV/2, ±maxEV</code>。它只以不同曝光影格補標準曝光的高光／陰影細節，不與水流或去物件共用 merge 規則。</li>
+    </ul>
+
+    <h2>四、共同「處理長邊」的正確語意</h2>
+    <p>目前共同選項為 1920、2560、3840 與「最高」。它的語意是<strong>來源 JPEG 已取得後，進記憶體與進合成前保留的最長邊</strong>；它不是對 CameraX analysis 提出的固定 target resolution，也不是 upscaler。</p>
+    <p>「最高」不能寫死成某個數字：應讀目前作用中鏡頭 <code>SCALER_STREAM_CONFIGURATION_MAP</code> 中 JPEG output 的最大尺寸，再以該尺寸當上限。這確保切換鏡頭時設定仍有物理意義。實作上的「已套用」與跨鏡頭／所有模式組合都已完成壓力驗證是兩件事；最大尺寸組合仍需逐一實測記憶體、時間與方向。</p>
+
+    <h2>五、記憶體策略：先縮，再留；不要留整套原始 12MP bitmap</h2>
+    <p>最早的 HDR 把七張全尺寸 bitmap 與對齊資料同時常駐，實機處理超時後 app 被系統終止。修正不是盲目把一切壓到 1280，而是把 memory budget 變成顯式設計：</p>
+    <ol>
+      <li>拍攝來源可為原生 4000×3000 JPEG。</li>
+      <li>解碼後立刻縮至選定工作長邊，才加入 frame list。</li>
+      <li>處理時只保留本輪必要的 processed frames、reference 與 output；臨時 raw bitmap 儘早釋放。</li>
+      <li>HDR 收斂為 3／5 張，避免 7 張全尺寸加對齊陣列的峰值。</li>
+      <li>高解析 session 取不到足夠影格時，至少回傳明確 fallback 成片與狀態；不能沉默地沒有照片。</li>
+    </ol>
+
+    <h2>六、操作狀態也屬於 capture 契約</h2>
+    <p>多張模式不能只靠隱藏 status text 告訴使用者正在做什麼。快門採用三段狀態：</p>
+    <ul>
+      <li><strong>Ready：</strong>黑色快門，可再次拍攝。</li>
+      <li><strong>Capturing：</strong>灰色快門，取樣／bracket 尚未結束。</li>
+      <li><strong>Processing：</strong>灰色快門加旋轉指示，已拍完、正在對齊與合成。</li>
+    </ul>
+    <p>這使得使用者在長間隔 object removal 或高解析 merge 時，可以放下手而不必猜是否仍在工作。</p>
+
+    <h2>七、驗收矩陣與下一次排查順序</h2>
+    <ol>
+      <li>先測 preview：直拿、橫拿與倒拿都必須保持既有方向契約。</li>
+      <li>再驗來源：debug 的 bound size、ImageProxy／JPEG 原始尺寸是否真的達到預期。</li>
+      <li>再驗輸出：確認成片是來源真縮小，而非把低解析 bitmap 放大。</li>
+      <li>水流測解析度、曝光與動態效果；對比既有已驗證路徑。</li>
+      <li>object removal 在長間隔下必須維持 live preview，並檢查背景 reference 是否銳利。</li>
+      <li>防手震長曝驗 2、8、16 張的記憶體與平均品質。</li>
+      <li>HDR 驗 3／5 張、不同最大 EV 與 3840／最高的完成時間與高光細節。</li>
+      <li>任一 high-res route 失敗時，確認狀態有原因、低解析 fallback 仍會輸出，而不是無聲放棄。</li>
+    </ol>
+
+    <p>這輪已實機證明獨立 Camera2 JPEG 水流可取得約 2524×1892 成片，且不破壞正常 preview；object removal 也改回能維持 live preview 的高解析逐張 capture。下一次若又看見「設定明明是 2560，成片怎麼只有 640」，第一個問題不該是縮放函式，而是：這個模式此刻拿到的來源到底是什麼、誰在和誰協商 stream？</p>
+  </article>
+</body>
+</html>

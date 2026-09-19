@@ -13,6 +13,12 @@
 
     <section class="journal-timeline">
         <article class="timeline-card">
+            <p class="entry-meta">2026-09-19｜Landscape Camera / CameraX / Camera2 / Multi-frame / Resolution</p>
+            <h2><a href="tech-2026-09-19-high-resolution-multiframe-capture.html">高解析疊圖不能只改 ImageAnalysis：把 preview、still capture 與處理尺寸分成三條契約</a></h2>
+            <p>從 640×480 成片、方形 ImageProxy 到獨立 Camera2 JPEG 水流，整理為什麼高解析來源、preview 契約、模式取樣節奏與記憶體政策必須分開設計，以及四種疊圖模式各自正確的擷取邊界。</p>
+        </article>
+
+        <article class="timeline-card">
             <p class="entry-meta">2026-09-17｜Landscape Camera / CameraX / Camera2 / EXIF / Manual Exposure</p>
             <h2><a href="tech-2026-09-17-water-manual-exposure-metering.html">沒有 capture metadata 時，如何讓水流快門真的可驗證</a></h2>
             <p>當 ImageAnalysis 沒有 Camera2 capture result 時，如何用暫存 AE JPEG 的 EXIF 測光、曝光重分配與 request settle window，讓水流快門不只顯示在 UI，而是真正出現在穩定的取樣節奏裡。</p>

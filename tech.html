@@ -13,6 +13,12 @@
 
     <section class="journal-timeline">
         <article class="timeline-card">
+            <p class="entry-meta">2026-10-01｜Landscape Camera / Water / Local Registration / Motion Mask</p>
+            <h2><a href="tech-2026-10-01-water-static-dynamic-registration.html">局部對齊為何不能碰水流：把手持視差、動態遮罩與時間平均拆成兩個座標系</a></h2>
+            <p>整理水流模式如何從全域對齊殘影、局部 warp 方格，到以初始 motion mask 將「靜物局部校正」和「水流全域座標」分開，並補上遮罩邊界與跨 JPEG RGB 正規化。</p>
+        </article>
+
+        <article class="timeline-card">
             <p class="entry-meta">2026-09-19｜Landscape Camera / CameraX / Camera2 / Multi-frame / Resolution</p>
             <h2><a href="tech-2026-09-19-high-resolution-multiframe-capture.html">高解析疊圖不能只改 ImageAnalysis：把 preview、still capture 與處理尺寸分成三條契約</a></h2>
             <p>從 640×480 成片、方形 ImageProxy 到獨立 Camera2 JPEG 水流，整理為什麼高解析來源、preview 契約、模式取樣節奏與記憶體政策必須分開設計，以及四種疊圖模式各自正確的擷取邊界。</p>

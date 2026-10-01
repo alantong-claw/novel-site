@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-10-01｜Landscape Camera / Water / Alignment｜局部對齊為何不能碰水流</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav><a href="tech.html">← 回難啃的技術</a> ・ <a href="index.html">← 回首頁</a></nav>
+
+  <article class="journal-entry tech-entry">
+    <p class="entry-meta">2026-10-01｜Landscape Camera / Water / Local Registration / Motion Mask / Color Normalization</p>
+    <h1>局部對齊為何不能碰水流：把手持視差、動態遮罩與時間平均拆成兩個座標系</h1>
+
+    <p>多張水流合成最初只有一組全域平移／微旋轉。手持拍攝時，近處水龍頭和遠處置物架的視差不同；若把多張長快門 JPEG 直接平均，靜態物就會出現雙邊殘影。局部網格對齊能改善背景，卻帶來另一種明顯失敗：水柱被網格變形切成方格，出水口與金屬邊也會出現疊影。這不是單純門檻要調高或調低，而是同一個 warp 被錯用在「靜態世界」與「正在變動的水」兩種資料上。</p>
+
+    <h2>一、先把現象對應到層次</h2>
+    <ul>
+      <li><strong>不同景深的靜物同時雙邊：</strong>全域剛體對齊不足；一組 dx/dy/rotation 無法描述手持造成的局部視差。</li>
+      <li><strong>水柱出現長方格或不連續：</strong>局部 tile 搜尋在變動水紋上偶然找到低殘差，warp 再把不同格的位移寫進動態區。</li>
+      <li><strong>水邊有細框或半透明線：</strong>motion mask 的弱邊界和短快門 reference 做比例混合，將兩個不同時間的邊緣疊在一起。</li>
+      <li><strong>杯口、瓶緣有亮暗縫：</strong>不同 JPEG 的 AE/AWB 微小漂移沒有在平均前正規化；遮罩一跨過物件邊界就把色差留下。</li>
+    </ul>
+
+    <h2>二、兩階段座標策略</h2>
+    <p>目前水流 merge 的順序是：</p>
+    <ol>
+      <li>每張 long-exposure JPEG 先做全域平移／微旋轉，取得共同的全域座標。</li>
+      <li>在這個尚未局部 warp 的序列上計算初始 temporal motion mask；水流專用的靜態邊保護同時套用，避免杯緣或龍頭邊因微小手震被誤分類。</li>
+      <li>對每張影格估計 6×4 局部網格位移，只接受殘差低且改善明確的 tile；使用雙線性取樣，避免整數位移造成階梯。</li>
+      <li><strong>只將局部 warp 的結果寫回初始遮罩判為靜態的像素。</strong> 已辨識為水流的像素保留第 1 步的全域座標。</li>
+      <li>重新估計最終 motion mask，再做水流時間平均。</li>
+    </ol>
+    <p>這個分離有一個實際意義：背景可以利用局部校正消除近遠景殘影；水流不被迫接受不連續的變形場。它不是 optical flow，也不宣稱能在所有大幅相機運動下復原畫面；它是對手持小視差的保守修正。</p>
+
+    <h2>三、遮罩邊界的規則</h2>
+    <p>水流不是所有非零 motion 都該平均。最終遮罩採「強動態核心＋相連弱邊界」：強核心與其連通的弱邊都完整使用時間平均，避免 reference/average 的半透明混合在水邊留下雙線；不連到水流核心的靜物邊則維持短快門 reference。靜態邊門檻採較高、連續輪廓條件，避免 JPEG 的 8px 壓縮格本身被當成幾何邊、再挖出一格格保護區。</p>
+
+    <h2>四、色彩是另一條獨立軸</h2>
+    <p>即使座標正確，不同 JPEG 仍可能有小幅 AE 或 AWB 偏移。因此在水流平均前，會從稀疏、非離群的靜態背景樣本估計每張影格的 RGB 偏移並正規化。這不是在整張輸出做美化；它只讓同一塊背景在被遮罩切換時維持相同基準，減少杯口、瓶緣的亮暗跳變。</p>
+
+    <h2>五、回歸測試與驗收邊界</h2>
+    <ul>
+      <li>雙景深靜物：左側位移 1px、右側位移 3px，局部對齊應降低雙邊。</li>
+      <li>變動水 tile：即使小位移能降低分數，也必須拒絕局部 warp。</li>
+      <li>已判為水的像素：局部對齊後必須保留全域影格的像素值，不能被 warp 寫回。</li>
+      <li>靜態高對比邊：水流 mask 不得外溢進龍頭／杯壁，也不得讓 JPEG block 成為保護輪廓。</li>
+      <li>曝光偏移：正規化後，動態遮罩跨靜物邊時不應留下可見亮暗縫。</li>
+    </ul>
+    <p>實機仍是必要驗收：不同鏡頭、焦距、景深與手持幅度不會都落在這些合成 fixture 裡。debug 資訊要保留 short reference 是否啟用、來源／輸出尺寸、實際快門與每張取樣間隔；當背景變糊時，先判斷是 reference 本身、全域對齊、局部 warp 還是遮罩混合，而不是先改一個全域參數。</p>
+
+    <p>這一輪的成果不是讓水流模式變成萬用影像穩定器，而是讓它有清楚的責任邊界：全域對齊處理共同座標、局部校正只處理靜態視差、motion mask 決定哪些像素屬於水、時間平均只處理水、色彩正規化則消除跨影格基準差。下一次出現新 artifact，才有一個可被驗證的地方可以開始。</p>
+  </article>
+</body>
+</html>
